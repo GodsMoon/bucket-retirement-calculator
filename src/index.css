@@ -3,4 +3,4 @@
 @tailwind utilities;
 
 /* optional sanity check: this will make the page obvious if Tailwind compiled */
-body { @apply bg-slate-50 text-slate-900; }
+body { @apply bg-slate-100 text-slate-900; }

@@ -338,11 +338,11 @@ export default function App() {
           {stats && (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.bands.map(b=>({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))}>
+                <AreaChart data={stats.bands.map(b=>({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" tickFormatter={(t)=>`${t}`} label={{ value: "Years", position: "insideBottom", offset: -5 }} />
                   <YAxis tickFormatter={(v)=> (v>=1? (currency.format(v)) : v.toFixed(2))} />
-                  <Tooltip formatter={(v: any)=> typeof v === 'number' ? currency.format(v) : v} />
+                  <Tooltip formatter={(v: any)=> typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => {return (item.value as number) * -1;}}/>
                   <Legend />
                   <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
                   <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
@@ -360,7 +360,7 @@ export default function App() {
           {sampleRun && (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sampleRun.balances.map((b, i)=>({ year: i, balance: b }))}>
+                <LineChart data={sampleRun.balances.map((b, i)=>({ year: i, balance: b }))} margin={{ left: 32, right: 8, top: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" />
                   <YAxis tickFormatter={(v)=> currency.format(v as number)} />

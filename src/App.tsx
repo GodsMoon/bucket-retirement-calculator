@@ -166,9 +166,10 @@ export default function App() {
   const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
   const [inflationAdjust, setInflationAdjust] = useState(true);
   const [inflationRate, setInflationRate] = useState(0.02); // 2%
-  const [mode, setMode] = useState<"actual-seq" | "random-shuffle" | "bootstrap">("actual-seq");
+  const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("actual-seq");
   const [numRuns, setNumRuns] = useState(1000);
   const [seed, setSeed] = useState<number | "">("");
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Optional seed (not cryptographically strong) so users can reproduce
   useMemo(() => {
@@ -203,6 +204,34 @@ export default function App() {
     return out;
   }, [horizon]);
 
+  // Build sequences that start at random years but proceed chronologically
+  const randomStartSequenceMultipliers = useMemo(() => {
+    // Use the returns in chronological order from earliest to latest
+    const multipliersChrono = TOTAL_RETURNS.slice().sort((a,b)=>a.year-b.year).map(d=>pctToMult(d.returnPct));
+    const totalYears = multipliersChrono.length;
+    
+    // For Monte Carlo, generate multiple sequences with different starting points
+    const sequences: number[][] = [];
+    const runsToGenerate = mode === "actual-seq-random-start" ? numRuns : 0;
+    
+    for (let run = 0; run < runsToGenerate; run++) {
+      // Pick a random starting year
+      const startIdx = Math.floor(Math.random() * totalYears);
+      const seq: number[] = [];
+      
+      // Generate sequence of required horizon length
+      for (let i = 0; i < horizon; i++) {
+        // Calculate the actual index with wrapping
+        const idx = (startIdx + i) % totalYears;
+        seq.push(multipliersChrono[idx]);
+      }
+      
+      sequences.push(seq);
+    }
+    
+    return sequences;
+  }, [horizon, numRuns, mode, refreshCounter]);
+
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
     const runs: RunResult[] = [];
@@ -213,6 +242,13 @@ export default function App() {
       runs.push(
         simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust)
       );
+    } else if (mode === "actual-seq-random-start") {
+      // Use the pre-generated sequences with random starting years
+      for (const seq of randomStartSequenceMultipliers) {
+        runs.push(
+          simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust)
+        );
+      }
     } else if (mode === "random-shuffle") {
       for (let r = 0; r < numRuns; r++) {
         const seq = shuffle(multipliers).slice(0, horizon);
@@ -230,7 +266,7 @@ export default function App() {
     }
 
     return runs;
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers]);
+  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers, refreshCounter]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;
@@ -291,11 +327,25 @@ export default function App() {
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 space-y-3">
-            <h2 className="font-semibold">Simulation Mode</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Simulation Mode</h2>
+              <button
+                className="text-lg hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                onClick={() => setRefreshCounter(prev => prev + 1)}
+                aria-label="Refresh simulation"
+                title="Refresh simulation"
+              >
+                ⟳
+              </button>
+            </div>
             <div className="space-y-2 text-sm">
               <label className="flex items-center gap-2">
                 <input type="radio" name="mode" checked={mode==='actual-seq'} onChange={()=>setMode('actual-seq')} />
                 Actual sequence (chronological 1946→)
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="mode" checked={mode==='actual-seq-random-start'} onChange={()=>setMode('actual-seq-random-start')} />
+                Actual sequence (chronological X→)
               </label>
               <label className="flex items-center gap-2">
                 <input type="radio" name="mode" checked={mode==='random-shuffle'} onChange={()=>setMode('random-shuffle')} />
@@ -306,7 +356,7 @@ export default function App() {
                 Bootstrap (sample with replacement)
               </label>
             </div>
-            {(mode !== 'actual-seq') && (
+            {(mode === 'actual-seq-random-start' || mode === 'random-shuffle' || mode === 'bootstrap') && (
               <>
                 <label className="block text-sm"># Monte Carlo runs
                   <input type="number" className="mt-1 w-full border rounded-xl p-2" value={numRuns} onChange={e=>setNumRuns(Math.max(1, Number(e.target.value)))} />

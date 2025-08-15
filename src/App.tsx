@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 
 // ---- Data: S&P 500 Total Returns by Year (TOTAL RETURN = price + dividends), 1946-2025 ----
@@ -170,6 +170,19 @@ export default function App() {
   const [numRuns, setNumRuns] = useState(1000);
   const [seed, setSeed] = useState<number | "">("");
   const [refreshCounter, setRefreshCounter] = useState(0);
+  // Year bounds and start-year state for actual sequence mode
+  const minYear = useMemo(() => Math.min(...TOTAL_RETURNS.map(d => d.year)), []);
+  const maxYear = useMemo(() => Math.max(...TOTAL_RETURNS.map(d => d.year)), []);
+  const [startYear, setStartYear] = useState<number>(minYear);
+
+  // Max start so startYear + horizon - 1 ≤ maxYear
+  const maxStartYear = useMemo(() => maxYear - horizon + 1, [maxYear, horizon]);
+
+  // Clamp start year whenever horizon changes
+  useEffect(() => {
+    if (startYear > maxStartYear) setStartYear(Math.max(minYear, maxStartYear));
+    if (startYear < minYear) setStartYear(minYear);
+  }, [horizon, minYear, maxStartYear]);
 
   // Optional seed (not cryptographically strong) so users can reproduce
   useMemo(() => {
@@ -189,46 +202,48 @@ export default function App() {
     })();
   }, [seed]);
 
-  const years = useMemo(() => TOTAL_RETURNS.map(d => d.year).sort((a,b)=>a-b), []);
+  const years = useMemo(() => TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
 
   // Build deterministic return sequence for the chosen horizon using ACTUAL order (most recent last)
   const actualSequenceMultipliers = useMemo(() => {
-    // Use the returns in chronological order from earliest to latest
-    const multipliersChrono = TOTAL_RETURNS.slice().sort((a,b)=>a.year-b.year).map(d=>pctToMult(d.returnPct));
-    // If horizon exceeds available years, wrap by cycling (or we could stop). We'll cycle to keep things simple.
+    const sorted = TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
+    const yearsSorted = sorted.map(d => d.year);
+    const mults = sorted.map(d => pctToMult(d.returnPct));
+
+    const startIdx = yearsSorted.indexOf(startYear);
     const out: number[] = [];
     for (let i = 0; i < horizon; i++) {
-      out.push(multipliersChrono[i % multipliersChrono.length]);
+      out.push(mults[startIdx + i]); // safe because we clamp startYear
     }
     return out;
-  }, [horizon]);
+  }, [horizon, startYear]);
 
   // Build sequences that start at random years but proceed chronologically
   const randomStartSequenceMultipliers = useMemo(() => {
     // Use the returns in chronological order from earliest to latest
-    const multipliersChrono = TOTAL_RETURNS.slice().sort((a,b)=>a.year-b.year).map(d=>pctToMult(d.returnPct));
+    const multipliersChrono = TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year).map(d => pctToMult(d.returnPct));
     const totalYears = multipliersChrono.length;
-    
+
     // For Monte Carlo, generate multiple sequences with different starting points
     const sequences: number[][] = [];
     const runsToGenerate = mode === "actual-seq-random-start" ? numRuns : 0;
-    
+
     for (let run = 0; run < runsToGenerate; run++) {
       // Pick a random starting year
       const startIdx = Math.floor(Math.random() * totalYears);
       const seq: number[] = [];
-      
+
       // Generate sequence of required horizon length
       for (let i = 0; i < horizon; i++) {
         // Calculate the actual index with wrapping
         const idx = (startIdx + i) % totalYears;
         seq.push(multipliersChrono[idx]);
       }
-      
+
       sequences.push(seq);
     }
-    
+
     return sequences;
   }, [horizon, numRuns, mode, refreshCounter]);
 
@@ -309,20 +324,20 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow p-4 space-y-3">
             <h2 className="font-semibold">Inputs</h2>
             <label className="block text-sm">Starting balance
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={startBalance} onChange={e=>setStartBalance(Number(e.target.value))} />
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={startBalance} onChange={e => setStartBalance(Number(e.target.value))} />
             </label>
             <label className="block text-sm">Horizon (years)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={horizon} onChange={e=>setHorizon(Math.max(1, Number(e.target.value)))} />
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={horizon} onChange={e => setHorizon(Math.max(1, Number(e.target.value)))} />
             </label>
             <label className="block text-sm">Withdrawal rate (% of initial)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e=>setWithdrawRate(Number(e.target.value))} />
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e => setWithdrawRate(Number(e.target.value))} />
             </label>
             <div className="flex items-center gap-2">
-              <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e=>setInflationAdjust(e.target.checked)} />
+              <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => setInflationAdjust(e.target.checked)} />
               <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
             </div>
             <label className="block text-sm">Inflation rate (if adjusted)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={inflationRate} step={0.005} onChange={e=>setInflationRate(Number(e.target.value))} />
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={inflationRate} step={0.005} onChange={e => setInflationRate(Number(e.target.value))} />
             </label>
           </div>
 
@@ -340,29 +355,51 @@ export default function App() {
             </div>
             <div className="space-y-2 text-sm">
               <label className="flex items-center gap-2">
-                <input type="radio" name="mode" checked={mode==='actual-seq'} onChange={()=>setMode('actual-seq')} />
-                Actual sequence (chronological 1946→)
+                <input
+                  type="radio"
+                  name="mode"
+                  checked={mode === 'actual-seq'}
+                  onChange={() => setMode('actual-seq')}
+                />
+                <span>Actual sequence (start year)</span>
+                <input
+                  type="number"
+                  className="ml-2 w-24 border rounded-xl p-1 disabled:opacity-50"
+                  value={startYear}
+                  min={minYear}
+                  max={maxStartYear}
+                  disabled={mode !== 'actual-seq'}
+                  onChange={(e) => {
+                    const y = Number(e.target.value);
+                    const clamped = Math.min(Math.max(y, minYear), maxStartYear);
+                    setStartYear(clamped);
+                  }}
+                  title={`Valid range: ${minYear}–${maxStartYear}`}
+                />
+              </label>
+              <div className="text-xs text-slate-500 pl-6">
+                Max start year for current horizon: {maxStartYear}
+              </div>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => setMode('actual-seq-random-start')} />
+                Actual sequence (randomize start year)
               </label>
               <label className="flex items-center gap-2">
-                <input type="radio" name="mode" checked={mode==='actual-seq-random-start'} onChange={()=>setMode('actual-seq-random-start')} />
-                Actual sequence (chronological X→)
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="mode" checked={mode==='random-shuffle'} onChange={()=>setMode('random-shuffle')} />
+                <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => setMode('random-shuffle')} />
                 Random shuffle of historical years
               </label>
               <label className="flex items-center gap-2">
-                <input type="radio" name="mode" checked={mode==='bootstrap'} onChange={()=>setMode('bootstrap')} />
+                <input type="radio" name="mode" checked={mode === 'bootstrap'} onChange={() => setMode('bootstrap')} />
                 Bootstrap (sample with replacement)
               </label>
             </div>
             {(mode === 'actual-seq-random-start' || mode === 'random-shuffle' || mode === 'bootstrap') && (
               <>
                 <label className="block text-sm"># Monte Carlo runs
-                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={numRuns} onChange={e=>setNumRuns(Math.max(1, Number(e.target.value)))} />
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={numRuns} onChange={e => setNumRuns(Math.max(1, Number(e.target.value)))} />
                 </label>
                 <label className="block text-sm">Seed (optional)
-                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={seed} onChange={e=>setSeed(e.target.value === '' ? '' : Number(e.target.value))} />
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={seed} onChange={e => setSeed(e.target.value === '' ? '' : Number(e.target.value))} />
                 </label>
               </>
             )}
@@ -372,7 +409,7 @@ export default function App() {
             <h2 className="font-semibold">Results</h2>
             {stats && (
               <div className="space-y-2 text-sm">
-                <div>Success rate: <span className="font-semibold">{(stats.successRate*100).toFixed(1)}%</span> ({sims.length} run{ sims.length!==1?'s':''})</div>
+                <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
                 <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
                 <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
               </div>
@@ -388,11 +425,11 @@ export default function App() {
           {stats && (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.bands.map(b=>({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
+                <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" tickFormatter={(t)=>`${t}`} label={{ value: "Years", position: "insideBottom", offset: -5 }} />
-                  <YAxis tickFormatter={(v)=> (v>=1? (currency.format(v)) : v.toFixed(2))} />
-                  <Tooltip formatter={(v: any)=> typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => {return (item.value as number) * -1;}}/>
+                  <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
+                  <YAxis tickFormatter={(v) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
+                  <Tooltip formatter={(v: any) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
                   <Legend />
                   <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
                   <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
@@ -410,11 +447,11 @@ export default function App() {
           {sampleRun && (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sampleRun.balances.map((b, i)=>({ year: i, balance: b }))} margin={{ left: 32, right: 8, top: 8, bottom: 8 }}>
+                <LineChart data={sampleRun.balances.map((b, i) => ({ year: i, balance: b }))} margin={{ left: 32, right: 8, top: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" />
-                  <YAxis tickFormatter={(v)=> currency.format(v as number)} />
-                  <Tooltip formatter={(v: any)=> typeof v === 'number' ? currency.format(v) : v} />
+                  <YAxis tickFormatter={(v) => currency.format(v as number)} />
+                  <Tooltip formatter={(v: any) => typeof v === 'number' ? currency.format(v) : v} />
                   <Line type="monotone" dataKey="balance" name="Balance" dot={false} strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>

@@ -8,6 +8,7 @@ export default function App() {
   const [startBalance, setStartBalance] = useState(1_000_000);
   const [horizon, setHorizon] = useState(30);
   const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
+  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(startBalance * (4 / 100));
   const [inflationAdjust, setInflationAdjust] = useState(true);
   const [inflationRate, setInflationRate] = useState(0.02); // 2%
   const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("actual-seq");
@@ -18,9 +19,22 @@ export default function App() {
 
   const handleParamChange = (param: string, value: any) => {
     switch (param) {
-      case 'startBalance': setStartBalance(value); break;
+      case 'startBalance':
+        setStartBalance(value);
+        // Recalculate initial withdrawal amount based on new start balance and current withdraw rate
+        setInitialWithdrawalAmount(value * (withdrawRate / 100));
+        break;
       case 'horizon': setHorizon(value); break;
-      case 'withdrawRate': setWithdrawRate(value); break;
+      case 'withdrawRate':
+        setWithdrawRate(value);
+        // Update initial withdrawal amount based on new rate
+        setInitialWithdrawalAmount(startBalance * (value / 100));
+        break;
+      case 'initialWithdrawalAmount':
+        setInitialWithdrawalAmount(value);
+        // Update withdraw rate based on new amount
+        setWithdrawRate((value / startBalance) * 100);
+        break;
       case 'inflationAdjust': setInflationAdjust(value); break;
       case 'inflationRate': setInflationRate(value); break;
       case 'mode': setMode(value); break;
@@ -29,6 +43,11 @@ export default function App() {
       case 'startYear': setStartYear(value); break;
     }
   };
+
+  // Effect to update initialWithdrawalAmount if startBalance changes from outside (e.g., initial load)
+  useEffect(() => {
+    setInitialWithdrawalAmount(startBalance * (withdrawRate / 100));
+  }, [startBalance, withdrawRate]);
 
   const handleRefresh = () => {
     setRefreshCounter(prev => prev + 1);
@@ -51,6 +70,7 @@ export default function App() {
             startBalance={startBalance}
             horizon={horizon}
             withdrawRate={withdrawRate}
+            initialWithdrawalAmount={initialWithdrawalAmount}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -59,6 +79,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            refreshCounter={refreshCounter}
           />
         )}
 
@@ -67,6 +88,7 @@ export default function App() {
             startBalance={startBalance}
             horizon={horizon}
             withdrawRate={withdrawRate}
+            initialWithdrawalAmount={initialWithdrawalAmount}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -75,6 +97,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            refreshCounter={refreshCounter}
           />
         )}
       </div>

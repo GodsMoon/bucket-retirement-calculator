@@ -159,6 +159,7 @@ interface SPTabProps {
   startBalance: number;
   horizon: number;
   withdrawRate: number;
+  initialWithdrawalAmount: number;
   inflationAdjust: boolean;
   inflationRate: number;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
@@ -167,12 +168,14 @@ interface SPTabProps {
   startYear: number;
   onRefresh: () => void;
   onParamChange: (param: string, value: any) => void;
+  refreshCounter: number;
 }
 
 const SPTab: React.FC<SPTabProps> = ({
   startBalance,
   horizon,
   withdrawRate,
+  initialWithdrawalAmount,
   inflationAdjust,
   inflationRate,
   mode,
@@ -180,7 +183,8 @@ const SPTab: React.FC<SPTabProps> = ({
   seed,
   startYear,
   onRefresh,
-  onParamChange
+  onParamChange,
+  refreshCounter
 }) => {
   const years = useMemo(() => TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -220,7 +224,7 @@ const SPTab: React.FC<SPTabProps> = ({
     }
 
     return sequences;
-  }, [horizon, numRuns, mode]);
+  }, [horizon, numRuns, mode, refreshCounter]);
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
@@ -255,7 +259,7 @@ const SPTab: React.FC<SPTabProps> = ({
     }
 
     return runs;
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers]);
+  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers, refreshCounter]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;
@@ -293,14 +297,20 @@ const SPTab: React.FC<SPTabProps> = ({
         <div className="bg-white rounded-2xl shadow p-4 space-y-3">
           <h2 className="font-semibold">Inputs</h2>
           <label className="block text-sm">Starting balance
-            <input type="number" className="mt-1 w-full border rounded-xl p-2" value={startBalance} onChange={e => onParamChange('startBalance', Number(e.target.value))} />
+            <input type="number" className="mt-1 w-full border rounded-xl p-2" value={startBalance} step={10000} onChange={e => onParamChange('startBalance', Number(e.target.value))} />
           </label>
           <label className="block text-sm">Horizon (years)
             <input type="number" className="mt-1 w-full border rounded-xl p-2" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
           </label>
-          <label className="block text-sm">Withdrawal rate (% of initial)
-            <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
-          </label>
+          <h3 className="font-semibold">Withdraw Rate:</h3>
+          <div className="flex gap-4">
+            <label className="block text-sm flex-1">% of initial
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
+            </label>
+            <label className="block text-sm flex-1">Initial $
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={initialWithdrawalAmount} step={1000} onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
+            </label>
+          </div>
           <div className="flex items-center gap-2">
             <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
             <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
@@ -376,7 +386,7 @@ const SPTab: React.FC<SPTabProps> = ({
           <h2 className="font-semibold">Results</h2>
           {stats && (
             <div className="space-y-2 text-sm">
-              <div>1st year withdrawal: <span className="font-semibold">{currency.format(startBalance * withdrawRate / 100)}</span></div>
+              <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
               <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
               <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
               <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>

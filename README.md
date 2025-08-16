@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -67,3 +68,7 @@ export default tseslint.config([
   },
 ])
 ```
+=======
+# bucket-retirement-calculator
+testing the 4% rule for different assets
+>>>>>>> bab2024deaeb6afca996a3f18f2c1fc82e33d2c5

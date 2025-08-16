@@ -8,7 +8,7 @@ export default function App() {
   const [startBalance, setStartBalance] = useState(1_000_000);
   const [horizon, setHorizon] = useState(30);
   const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
-  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(startBalance * (4 / 100));
+  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(Math.round(startBalance * (4 / 100)));
   const [inflationAdjust, setInflationAdjust] = useState(true);
   const [inflationRate, setInflationRate] = useState(0.02); // 2%
   const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("actual-seq");

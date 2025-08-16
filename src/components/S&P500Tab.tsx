@@ -308,7 +308,7 @@ const SPTab: React.FC<SPTabProps> = ({
               <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
             </label>
             <label className="block text-sm flex-1">Initial $
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={initialWithdrawalAmount} step={1000} onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
+              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={Math.round(initialWithdrawalAmount)} step={1000} onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
             </label>
           </div>
           <div className="flex items-center gap-2">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";

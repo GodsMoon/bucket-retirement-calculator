@@ -158,6 +158,7 @@ interface PortfolioTabProps {
   startYear: number;
   onRefresh: () => void;
   onParamChange: (param: string, value: string | number | boolean) => void;
+  refreshCounter: number;
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -177,6 +178,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   startYear,
   onRefresh,
   onParamChange,
+  refreshCounter,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
@@ -222,7 +224,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       }
     }
     return runs;
-  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years]);
+  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter]);
 
 
   const stats = useMemo(() => {

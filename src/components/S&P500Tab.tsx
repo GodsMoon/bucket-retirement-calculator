@@ -48,6 +48,7 @@ interface SPTabProps {
   startYear: number;
   onRefresh: () => void;
   onParamChange: (param: string, value: string | number | boolean) => void;
+  refreshCounter: number;
 }
 
 const SPTab: React.FC<SPTabProps> = ({
@@ -63,6 +64,7 @@ const SPTab: React.FC<SPTabProps> = ({
   startYear,
   onRefresh,
   onParamChange,
+  refreshCounter,
 }) => {
   const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -102,7 +104,7 @@ const SPTab: React.FC<SPTabProps> = ({
     }
 
     return sequences;
-  }, [horizon, numRuns, mode]);
+  }, [horizon, numRuns, mode, refreshCounter]);
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
@@ -137,7 +139,7 @@ const SPTab: React.FC<SPTabProps> = ({
     }
 
     return runs;
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers]);
+  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers, refreshCounter]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;

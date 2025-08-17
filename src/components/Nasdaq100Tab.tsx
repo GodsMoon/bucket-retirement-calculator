@@ -1,58 +1,7 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
-
-// NASDAQ 100 (QQQ) Total Returns by Year, 1986-2025
-const QQQ_RETURNS: { year: number; returnPct: number }[] = [
-  { year: 2025, returnPct: 13.42 },
-  { year: 2024, returnPct: 24.88 },
-  { year: 2023, returnPct: 53.81 },
-  { year: 2022, returnPct: -32.97 },
-  { year: 2021, returnPct: 26.63 },
-  { year: 2020, returnPct: 47.58 },
-  { year: 2019, returnPct: 37.96 },
-  { year: 2018, returnPct: -1.04 },
-  { year: 2017, returnPct: 31.52 },
-  { year: 2016, returnPct: 5.89 },
-  { year: 2015, returnPct: 8.43 },
-  { year: 2014, returnPct: 17.94 },
-  { year: 2013, returnPct: 34.99 },
-  { year: 2012, returnPct: 16.82 },
-  { year: 2011, returnPct: 2.70 },
-  { year: 2010, returnPct: 19.22 },
-  { year: 2009, returnPct: 53.54 },
-  { year: 2008, returnPct: -41.89 },
-  { year: 2007, returnPct: 18.67 },
-  { year: 2006, returnPct: 6.79 },
-  { year: 2005, returnPct: 1.49 },
-  { year: 2004, returnPct: 10.44 },
-  { year: 2003, returnPct: 49.12 },
-  { year: 2002, returnPct: -37.58 },
-  { year: 2001, returnPct: -32.65 },
-  { year: 2000, returnPct: -36.84 },
-  { year: 1999, returnPct: 101.95 },
-  { year: 1998, returnPct: 85.31 },
-  { year: 1997, returnPct: 20.63 },
-  { year: 1996, returnPct: 42.54 },
-  { year: 1995, returnPct: 42.54 },
-  { year: 1994, returnPct: 1.50 },
-  { year: 1993, returnPct: 10.58 },
-  { year: 1992, returnPct: 8.87 },
-  { year: 1991, returnPct: 64.99 },
-  { year: 1990, returnPct: -10.41 },
-  { year: 1989, returnPct: 26.17 },
-  { year: 1988, returnPct: 13.54 },
-  { year: 1987, returnPct: 10.50 },
-  { year: 1986, returnPct: 6.89 },
-];
-
-// Helper: convert percent to multiplier
-const pctToMult = (pct: number) => 1 + pct / 100;
-
-// Simulation engine
-type RunResult = {
-  balances: number[]; // length horizon+1 including year 0
-  failedYear: number | null; // first year that ends <= 0 (1-based), else null
-};
+import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
+import { pctToMult, bootstrapSample, shuffle, percentile, RunResult } from "../lib/simulation";
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon
@@ -86,35 +35,6 @@ function simulatePath(
   return { balances, failedYear };
 }
 
-function bootstrapSample<T>(arr: T[], n: number): T[] {
-  const out: T[] = [];
-  for (let i = 0; i < n; i++) {
-    const j = Math.floor(Math.random() * arr.length);
-    out.push(arr[j]);
-  }
-  return out;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// Percentile helper
-function percentile(values: number[], p: number): number {
-  if (values.length === 0) return NaN;
-  const sorted = values.slice().sort((a, b) => a - b);
-  const idx = (sorted.length - 1) * p;
-  const lo = Math.floor(idx), hi = Math.ceil(idx);
-  if (lo === hi) return sorted[lo];
-  const w = idx - lo;
-  return sorted[lo] * (1 - w) + sorted[hi] * w;
-}
-
 interface NasdaqTabProps {
   startBalance: number;
   horizon: number;
@@ -127,8 +47,7 @@ interface NasdaqTabProps {
   seed: number | "";
   startYear: number;
   onRefresh: () => void;
-  onParamChange: (param: string, value: any) => void;
-  refreshCounter: number;
+  onParamChange: (param: string, value: string | number | boolean) => void;
 }
 
 const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
@@ -144,14 +63,13 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   startYear,
   onRefresh,
   onParamChange,
-  refreshCounter
 }) => {
-  const years = useMemo(() => QQQ_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
-  const availableMultipliers = useMemo(() => QQQ_RETURNS.map(d => pctToMult(d.returnPct)), []);
+  const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
+  const availableMultipliers = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
 
   // Build deterministic return sequence for the chosen horizon using ACTUAL order (most recent last)
   const actualSequenceMultipliers = useMemo(() => {
-    const sorted = QQQ_RETURNS.slice().sort((a, b) => a.year - b.year);
+    const sorted = NASDAQ100_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
     const yearsSorted = sorted.map(d => d.year);
     const mults = sorted.map(d => pctToMult(d.returnPct));
 
@@ -165,7 +83,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
 
   // Build sequences that start at random years but proceed chronologically
   const randomStartSequenceMultipliers = useMemo(() => {
-    const multipliersChrono = QQQ_RETURNS.slice().sort((a, b) => a.year - b.year).map(d => pctToMult(d.returnPct));
+    const multipliersChrono = NASDAQ100_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year).map(d => pctToMult(d.returnPct));
     const totalYears = multipliersChrono.length;
 
     const sequences: number[][] = [];
@@ -184,7 +102,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
     }
 
     return sequences;
-  }, [horizon, numRuns, mode, refreshCounter]);
+  }, [horizon, numRuns, mode]);
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
@@ -219,7 +137,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
     }
 
     return runs;
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers, refreshCounter]);
+  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;
@@ -366,8 +284,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
               <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
-                <YAxis tickFormatter={(v) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
-                <Tooltip formatter={(v: any) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
+                <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
+                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
                 <Legend />
                 <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
                 <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
@@ -389,7 +307,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v) => currency.format(v as number)} />
-                <Tooltip formatter={(v: any) => typeof v === 'number' ? currency.format(v) : v} />
+                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} />
                 <Line type="monotone" dataKey="balance" name="Balance" dot={false} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>

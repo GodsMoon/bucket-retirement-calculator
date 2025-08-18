@@ -22,6 +22,7 @@ export type DrawdownStrategies =
 
 export default function App() {
   const round2 = (n: number) => Math.round(n * 100) / 100;
+  const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
   const [cash, setCash] = useState(100_000);
   const [spy, setSpy] = useState(450_000);
@@ -40,6 +41,8 @@ export default function App() {
   const [seed, setSeed] = useState<number | "">("");
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(1986); // Default start year
+
+  const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   const handleParamChange = (param: string, value: string | number | boolean) => {
     switch (param) {
@@ -90,11 +93,18 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold">4% Rule Tester — Monte Carlo</h1>
-        </header>
+    <div className={darkMode ? "dark" : ""}>
+      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 p-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <header className="flex items-center justify-between">
+            <h1 className="text-2xl md:text-3xl font-bold">4% Rule Tester — Monte Carlo</h1>
+            <button
+              className="px-3 py-1 rounded bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100"
+              onClick={toggleDarkMode}
+            >
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </button>
+          </header>
 
         <TabNavigation
           activeTab={activeTab}
@@ -187,6 +197,7 @@ export default function App() {
             refreshCounter={refreshCounter}
           />
         )}
+        </div>
       </div>
     </div>
   );

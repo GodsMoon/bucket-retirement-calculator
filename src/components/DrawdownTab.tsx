@@ -489,11 +489,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
           <h3 className="font-semibold">Withdraw Rate:</h3>
           <div className="flex gap-4">
-            <label className="block text-sm flex-1">% of initial
+            <label className="block text-sm pt-2 flex-1">% of initial
               <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
             </label>
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100' : ''}`}>
-              <label className="block text-sm">Initial $</label>
+              <label className="block text-sm flex-1">Initial $</label>
               <div className="flex items-center mt-1">
                 <input
                   type="number"
@@ -517,7 +517,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           </div>
           <label className="block text-sm">Assumed Inflation Rate
             <div className="flex items-center mt-1">
-              <input type="number" className="w-full border rounded-xl p-2" value={inflationRate * 100} step={0.5} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <input type="number" className="shrink border rounded-xl p-2" value={inflationRate * 100} step={0.5} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
               <span className="ml-2">%</span>
             </div>
           </label>

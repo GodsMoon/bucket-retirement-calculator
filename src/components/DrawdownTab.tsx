@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import type { DrawdownStrategies } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
-import { pctToMult, bootstrapSample, shuffle, percentile } from "../lib/simulation";
+import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 
 // ... (imports)
 
@@ -205,7 +205,7 @@ function simulateCapeBased(
     const cape = capeData[currentYear] || 25; // Default to 25 if no data
     const capeYield = 1 / cape;
     const withdrawalRate = basePercentage + capeFraction * capeYield;
-    let withdrawalAmount = balances[y].total * withdrawalRate;
+    const withdrawalAmount = balances[y].total * withdrawalRate;
 
     withdrawals[y] = withdrawalAmount;
 
@@ -358,6 +358,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       }
     }
     return runs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams]);
 
 
@@ -366,6 +367,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     const successCount = sims.filter(s => s.failedYear === null).length;
     const successRate = successCount / sims.length;
     const endingBalances = sims.map(s => s.balances[horizon].total);
+
+    const drawdownStats = calculateDrawdownStats(sims.map(s => ({
+      ...s,
+      balances: s.balances.map(b => b.total),
+    })));
 
     const bands: { year: number; p10: number; p25: number; p50: number; p75: number; p90: number; }[] = [];
     for (let t = 0; t <= horizon; t++) {
@@ -379,7 +385,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         p90: percentile(balT, 0.90),
       });
     }
-    return { successRate, endingBalances, bands };
+    return { successRate, endingBalances, bands, ...drawdownStats };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -540,6 +546,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
               <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
               <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
+              <div className="border-t pt-2 mt-2">
+                <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
+                <div>Max Drawdown: <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Worst Low Point: <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
+              </div>
             </div>
           )}
           {sampleRun && (
@@ -604,8 +616,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: any) => {
-                    const total = props.payload.cash + props.payload.spy + props.payload.qqq;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}

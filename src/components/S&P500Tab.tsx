@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { SP500_TOTAL_RETURNS } from "../data/returns";
-import { pctToMult, bootstrapSample, shuffle, percentile } from "../lib/simulation";
+import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
 
 function simulatePath(
@@ -105,6 +105,7 @@ const SPTab: React.FC<SPTabProps> = ({
     }
 
     return sequences;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horizon, numRuns, mode, refreshCounter]);
 
   const sims = useMemo(() => {
@@ -140,6 +141,7 @@ const SPTab: React.FC<SPTabProps> = ({
     }
 
     return runs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers, refreshCounter]);
 
   const stats = useMemo(() => {
@@ -149,6 +151,7 @@ const SPTab: React.FC<SPTabProps> = ({
     const endingBalances = sims.map(s => s.balances[s.balances.length - 1]);
     const successCount = sims.filter(s => s.failedYear === null).length;
     const successRate = successCount / sims.length;
+    const drawdownStats = calculateDrawdownStats(sims);
 
     // Percentile bands across years
     const bands: { year: number; p10: number; p25: number; p50: number; p75: number; p90: number; }[] = [];
@@ -164,7 +167,7 @@ const SPTab: React.FC<SPTabProps> = ({
       });
     }
 
-    return { successRate, endingBalances, bands };
+    return { successRate, endingBalances, bands, ...drawdownStats };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -271,6 +274,12 @@ const SPTab: React.FC<SPTabProps> = ({
               <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
               <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
               <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
+              <div className="border-t pt-2 mt-2">
+                <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
+                <div>Max Drawdown: <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Worst Low Point: <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
+              </div>
             </div>
           )}
           {sampleRun && (

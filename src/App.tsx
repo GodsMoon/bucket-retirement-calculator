@@ -21,6 +21,7 @@ export type DrawdownStrategies =
 
 
 export default function App() {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
   const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
   const [cash, setCash] = useState(100_000);
   const [spy, setSpy] = useState(450_000);
@@ -48,20 +49,12 @@ export default function App() {
       case 'qqq': setQqq(parseFloat(value as string)); break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
       case 'horizon': setHorizon(parseFloat(value as string)); break;
-      case 'withdrawRate': {
-        const numValue = parseFloat(value as string);
-        setWithdrawRate(numValue);
-        // Update initial withdrawal amount based on new rate
-        setInitialWithdrawalAmount(startBalance * (numValue / 100));
+      case 'withdrawRate':
+        setWithdrawRate(round2(parseFloat(value as string)));
         break;
-      }
-      case 'initialWithdrawalAmount': {
-        const numValue = parseFloat(value as string);
-        setInitialWithdrawalAmount(numValue);
-        // Update withdraw rate based on new amount
-        setWithdrawRate((numValue / startBalance) * 100);
+      case 'initialWithdrawalAmount':
+        setInitialWithdrawalAmount(parseFloat(value as string));
         break;
-      }
       case 'inflationAdjust': setInflationAdjust(value as boolean); break;
       case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
       case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
@@ -79,15 +72,15 @@ export default function App() {
   useEffect(() => {
     if (isInitialAmountLocked) {
       // If locked, initial withdrawal amount is king. Recalculate rate.
-      const newRate = (initialWithdrawalAmount / activeStartBalance) * 100;
+      const newRate = round2((initialWithdrawalAmount / activeStartBalance) * 100);
       if (withdrawRate !== newRate) {
         setWithdrawRate(newRate);
       }
     } else {
       // If not locked, withdraw rate is king. Recalculate initial amount.
       const newAmount = activeStartBalance * (withdrawRate / 100);
-      if (initialWithdrawalAmount !== newAmount) {
-        setInitialWithdrawalAmount(newAmount);
+      if (initialWithdrawalAmount !== Math.round(newAmount)) {
+        setInitialWithdrawalAmount(Math.round(newAmount));
       }
     }
   }, [activeStartBalance, isInitialAmountLocked, initialWithdrawalAmount, withdrawRate, setWithdrawRate, setInitialWithdrawalAmount]);

@@ -212,7 +212,9 @@ function simulateNoWithdrawalIfBelowStart(
   initialQqq: number,
   initialBonds: number,
   horizon: number,
-  withdrawalRate: number,
+  initialWithdrawalAmount: number,
+  inflationAdjust: boolean,
+  inflationRate: number,
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals = new Array(horizon).fill(0);
@@ -225,18 +227,24 @@ function simulateNoWithdrawalIfBelowStart(
   balances[0] = { total: startBalance, cash, spy, qqq, bonds };
   let failedYear: number | null = null;
 
+  let withdrawalAmount = initialWithdrawalAmount;
+
   for (let y = 0; y < horizon; y++) {
-    let withdrawalAmount = 0;
+    let currentWithdrawal = 0;
     if (balances[y].total >= startBalance) {
-      withdrawalAmount = balances[y].total * withdrawalRate;
+      currentWithdrawal = withdrawalAmount;
     }
 
-    withdrawals[y] = withdrawalAmount;
+    if (inflationAdjust) {
+      withdrawalAmount *= (1 + inflationRate);
+    }
+
+    withdrawals[y] = currentWithdrawal;
 
     // Drawdown from cash first
-    const fromCash = Math.min(withdrawalAmount, cash);
+    const fromCash = Math.min(currentWithdrawal, cash);
     cash -= fromCash;
-    let remainingWithdrawal = withdrawalAmount - fromCash;
+    let remainingWithdrawal = currentWithdrawal - fromCash;
 
     if (remainingWithdrawal > 0) {
       const fromSpy = Math.min(remainingWithdrawal, spy);
@@ -527,7 +535,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       } else if (strategy === "fixedPercentage") {
         runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
       } else if (strategy === "noWithdrawalIfBelowStart") {
-        runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
+        runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       }
     } else {
       // Monte Carlo modes
@@ -553,7 +561,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         } else if (strategy === "fixedPercentage") {
           runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
         } else if (strategy === "noWithdrawalIfBelowStart") {
-          runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
+          runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         }
       }
     }
@@ -698,12 +706,19 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             </div>
           )}
 
-          {(strategy === 'fixedPercentage' || strategy === 'noWithdrawalIfBelowStart') && (
+          {strategy === 'fixedPercentage' && (
             <div className="space-y-2 text-sm border-t pt-2">
               <h3 className="font-semibold">Fixed % Parameters</h3>
               <label className="block">Withdrawal Rate (%)
                 <input type="number" className="mt-1 w-full border rounded-xl p-2" value={fixedPercentageParams.withdrawalRate * 100} onChange={e => setFixedPercentageParams({...fixedPercentageParams, withdrawalRate: parseFloat(e.target.value) / 100})} />
               </label>
+            </div>
+          )}
+
+          {strategy === 'noWithdrawalIfBelowStart' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font-semibold mb-2">Parameters</h3>
+                <p className="text-xs text-slate-600">This strategy uses the global initial withdrawal amount and inflation settings.</p>
             </div>
           )}
 
@@ -960,7 +975,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           {strategy === 'noWithdrawalIfBelowStart' && (
             <div>
               <h3 className="font-semibold">No Withdrawal if Below Starting</h3>
-              <p>This strategy is a variation of the Fixed % Drawdown. It withdraws a fixed percentage of the remaining portfolio balance each year, but only if the current portfolio balance is not below the initial starting balance. If it is, no withdrawal is made for that year.</p>
+              <p>This strategy only withdraws the initial withdrawal amount (adjusted for inflation if checked) if the current balance is larger than the starting balance. Otherwise, nothing is withdrawn from the account. This would be used for Donations if funds allow.</p>
             </div>
           )}
         </div>

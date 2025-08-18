@@ -35,3 +35,34 @@ export function percentile(values: number[], p: number): number {
   const w = idx - lo;
   return sorted[lo] * (1 - w) + sorted[hi] * w;
 }
+
+export function calculateDrawdownStats(sims: RunResult[]) {
+  const maxDrawdowns: number[] = [];
+  const lowPoints: number[] = [];
+
+  for (const sim of sims) {
+    let peak = sim.balances[0];
+    let maxDrawdown = 0;
+    let lowPoint = sim.balances[0];
+
+    for (const balance of sim.balances) {
+      if (balance > peak) {
+        peak = balance;
+      }
+      const drawdown = peak > 0 ? (peak - balance) / peak : 0;
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown;
+        lowPoint = balance;
+      }
+    }
+    maxDrawdowns.push(maxDrawdown);
+    lowPoints.push(lowPoint);
+  }
+
+  return {
+    medianDrawdown: percentile(maxDrawdowns, 0.5),
+    medianLowPoint: percentile(lowPoints, 0.5),
+    maxDrawdown: Math.max(...maxDrawdowns),
+    worstLowPoint: Math.min(...lowPoints),
+  };
+}

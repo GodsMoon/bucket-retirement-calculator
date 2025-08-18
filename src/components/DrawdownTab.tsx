@@ -687,7 +687,6 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                     r={5}
                     fill="red"
                     stroke="white"
-                    isFront
                     name="Guardrail Trigger"
                   />
                 ))}

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { usePersistentState } from "./hooks/usePersistentState";
+import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "./data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "./data/bonds";
 import TabNavigation from "./components/TabNavigation";
@@ -24,24 +24,24 @@ export type DrawdownStrategies =
 
 export default function App() {
   const round2 = (n: number) => Math.round(n * 100) / 100;
-  const [darkMode, setDarkMode] = usePersistentState<boolean>("darkMode", false);
-  const [activeTab, setActiveTab] = usePersistentState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("activeTab", "sp500");
-  const [cash, setCash] = usePersistentState("cash", 100_000);
-  const [spy, setSpy] = usePersistentState("spy", 450_000);
-  const [qqq, setQqq] = usePersistentState("qqq", 450_000);
-  const [bonds, setBonds] = usePersistentState("bonds", 0);
+  const [darkMode, setDarkMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
+  const [cash, setCash] = useState(100_000);
+  const [spy, setSpy] = useState(450_000);
+  const [qqq, setQqq] = useState(450_000);
+  const [bonds, setBonds] = useState(0);
   const portfolioStartBalance = useMemo(() => cash + spy + qqq + bonds, [cash, spy, qqq, bonds]);
-  const [startBalance, setStartBalance] = usePersistentState("startBalance", 1_000_000);
-  const [drawdownStrategy, setDrawdownStrategy] = usePersistentState<DrawdownStrategy>("drawdownStrategy", "cashFirst_spyThenQqq");
-  const [horizon, setHorizon] = usePersistentState("horizon", 30);
-  const [withdrawRate, setWithdrawRate] = usePersistentState("withdrawRate", 4); // % of initial
-  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = usePersistentState("initialWithdrawalAmount", Math.round(startBalance * (4 / 100)));
-  const [isInitialAmountLocked, setIsInitialAmountLocked] = usePersistentState("isInitialAmountLocked", false);
-  const [inflationAdjust, setInflationAdjust] = usePersistentState("inflationAdjust", true);
-  const [inflationRate, setInflationRate] = usePersistentState("inflationRate", 0.02); // 2%
-  const [mode, setMode] = usePersistentState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("mode", "actual-seq");
-  const [numRuns, setNumRuns] = usePersistentState("numRuns", 1000);
-  const [seed, setSeed] = usePersistentState<number | "">("seed", "");
+  const [startBalance, setStartBalance] = useState(1_000_000);
+  const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>("cashFirst_spyThenQqq");
+  const [horizon, setHorizon] = useState(30);
+  const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
+  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(Math.round(startBalance * (4 / 100)));
+  const [isFirstWithdrawLocked, setIsInitialAmountLocked] = useState(false);
+  const [inflationAdjust, setInflationAdjust] = useState(true);
+  const [inflationRate, setInflationRate] = useState(0.02); // 2%
+  const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("actual-seq");
+  const [numRuns, setNumRuns] = useState(1000);
+  const [seed, setSeed] = useState<number | "">("");
   const [refreshCounter, setRefreshCounter] = useState(0);
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
@@ -49,7 +49,7 @@ export default function App() {
     const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
     return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
-  const [startYear, setStartYear] = usePersistentState("startYear", years[0]);
+  const [startYear, setStartYear] = useState<number>(years[0]);
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
@@ -62,12 +62,18 @@ export default function App() {
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
       case 'horizon': setHorizon(parseFloat(value as string)); break;
-      case 'withdrawRate':
-        setWithdrawRate(round2(parseFloat(value as string)));
+      case 'withdrawRate': {
+        const newRate = round2(parseFloat(value as string));
+        setWithdrawRate(newRate);
+        setInitialWithdrawalAmount(Math.round(activeStartBalance * (newRate / 100)));
         break;
-      case 'initialWithdrawalAmount':
-        setInitialWithdrawalAmount(parseFloat(value as string));
+      }
+      case 'initialWithdrawalAmount': {
+        const newAmount = parseFloat(value as string);
+        setInitialWithdrawalAmount(newAmount);
+        setWithdrawRate(round2((newAmount / activeStartBalance) * 100));
         break;
+      }
       case 'inflationAdjust': setInflationAdjust(value as boolean); break;
       case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
       case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
@@ -83,20 +89,20 @@ export default function App() {
 
   // Effect to update EITHER initialWithdrawalAmount OR withdrawRate if startBalance changes.
   useEffect(() => {
-    if (isInitialAmountLocked) {
-      // If locked, initial withdrawal amount is king. Recalculate rate.
+    if (isFirstWithdrawLocked) {
+      // If locked, first withdrawal amount is king. Recalculate rate.
       const newRate = round2((initialWithdrawalAmount / activeStartBalance) * 100);
       if (withdrawRate !== newRate) {
         setWithdrawRate(newRate);
       }
     } else {
-      // If not locked, withdraw rate is king. Recalculate initial amount.
+      // If unlocked, withdraw rate is king. Recalculate initial amount.
       const newAmount = activeStartBalance * (withdrawRate / 100);
       if (initialWithdrawalAmount !== Math.round(newAmount)) {
         setInitialWithdrawalAmount(Math.round(newAmount));
       }
     }
-  }, [activeStartBalance, isInitialAmountLocked, initialWithdrawalAmount, withdrawRate, setWithdrawRate, setInitialWithdrawalAmount]);
+  }, [activeStartBalance, isFirstWithdrawLocked, initialWithdrawalAmount, withdrawRate, setWithdrawRate, setInitialWithdrawalAmount]);
 
   const handleRefresh = () => {
     setRefreshCounter(prev => prev + 1);
@@ -127,7 +133,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
-            isInitialAmountLocked={isInitialAmountLocked}
+            isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -147,7 +153,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
-            isInitialAmountLocked={isInitialAmountLocked}
+            isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -172,7 +178,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
-            isInitialAmountLocked={isInitialAmountLocked}
+            isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -196,7 +202,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
-            isInitialAmountLocked={isInitialAmountLocked}
+            isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}

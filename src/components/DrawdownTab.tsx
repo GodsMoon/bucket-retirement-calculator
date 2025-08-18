@@ -537,7 +537,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           </label>
           <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
 
-          <h3 className="font-semibold">Starting Withdraw Rate:</h3>
+          <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
           <div className="flex gap-4">
             <label className="block text-sm pt-2 flex-1">% of Starting Portfolio
               <input type="number" className="mt-1 w-3/4 border rounded-xl p-2" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />

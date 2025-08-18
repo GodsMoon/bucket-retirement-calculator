@@ -205,13 +205,14 @@ const SPTab: React.FC<SPTabProps> = ({
             </label>
             <span className="mt-1 ">=</span>
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100' : ''}`}>
-              <label className="block text-sm flex-1">First Widthdraw</label>
+              <label className="block text-sm flex-1">First Withdraw</label>
               <div className="flex items-center mt-1">
                 <input
                   type="number"
                   className={`w-full border rounded-xl p-2 transition-colors ${isInitialAmountLocked ? 'text-green-800 font-semibold' : ''}`}
                   value={Math.round(initialWithdrawalAmount)}
                   step={1000}
+                  disabled={isInitialAmountLocked}
                   onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
                 <button
                   className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}

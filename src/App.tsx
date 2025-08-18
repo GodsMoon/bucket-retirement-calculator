@@ -62,12 +62,18 @@ export default function App() {
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
       case 'horizon': setHorizon(parseFloat(value as string)); break;
-      case 'withdrawRate':
-        setWithdrawRate(round2(parseFloat(value as string)));
+      case 'withdrawRate': {
+        const newRate = round2(parseFloat(value as string));
+        setWithdrawRate(newRate);
+        setInitialWithdrawalAmount(Math.round(activeStartBalance * (newRate / 100)));
         break;
-      case 'initialWithdrawalAmount':
-        setInitialWithdrawalAmount(parseFloat(value as string));
+      }
+      case 'initialWithdrawalAmount': {
+        const newAmount = parseFloat(value as string);
+        setInitialWithdrawalAmount(newAmount);
+        setWithdrawRate(round2((newAmount / activeStartBalance) * 100));
         break;
+      }
       case 'inflationAdjust': setInflationAdjust(value as boolean); break;
       case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
       case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
@@ -83,14 +89,14 @@ export default function App() {
 
   // Effect to update EITHER initialWithdrawalAmount OR withdrawRate if startBalance changes.
   useEffect(() => {
-    if (isInitialAmountLocked) {
-      // If locked, initial withdrawal amount is king. Recalculate rate.
+    if (!isInitialAmountLocked) {
+      // If unlocked, initial withdrawal amount is king. Recalculate rate.
       const newRate = round2((initialWithdrawalAmount / activeStartBalance) * 100);
       if (withdrawRate !== newRate) {
         setWithdrawRate(newRate);
       }
     } else {
-      // If not locked, withdraw rate is king. Recalculate initial amount.
+      // If locked, withdraw rate is king. Recalculate initial amount.
       const newAmount = activeStartBalance * (withdrawRate / 100);
       if (initialWithdrawalAmount !== Math.round(newAmount)) {
         setInitialWithdrawalAmount(Math.round(newAmount));

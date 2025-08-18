@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
-import type { DrawdownStrategy } from "../App";
+import type { DrawdownStrategies } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile } from "../lib/simulation";
 
@@ -23,7 +23,6 @@ function simulateGuytonKlinger(
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
-  drawdownStrategy: DrawdownStrategy,
   guardrailUpper: number,
   guardrailLower: number,
   cutPercentage: number,
@@ -112,7 +111,6 @@ function simulateFloorAndCeiling(
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
-  drawdownStrategy: DrawdownStrategy,
   floor: number,
   ceiling: number
 ): PortfolioRunResult {
@@ -248,141 +246,12 @@ function simulateCapeBased(
   return { balances, withdrawals, failedYear };
 }
 
-function simulatePortfolioPath(
-  spyReturns: number[],
-  qqqReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  horizon: number,
-  initialWithdrawalRate: number,
-  inflationRate: number,
-  inflationAdjust: boolean,
-  drawdownStrategy: DrawdownStrategy
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  const startBalance = initialCash + initialSpy + initialQqq;
-  const baseWithdrawal = startBalance * initialWithdrawalRate;
 
-  balances[0] = { total: startBalance, cash, spy, qqq };
-  let failedYear: number | null = null;
-
-  for (let y = 0; y < horizon; y++) {
-    let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
-
-    // Drawdown from cash first
-    const fromCash = Math.min(withdrawalAmount, cash);
-    cash -= fromCash;
-    withdrawalAmount -= fromCash;
-
-    if (withdrawalAmount > 0) {
-      if (drawdownStrategy === 'cashFirst_spyThenQqq') {
-        const fromSpy = Math.min(withdrawalAmount, spy);
-        spy -= fromSpy;
-        withdrawalAmount -= fromSpy;
-
-        if (withdrawalAmount > 0) {
-          const fromQqq = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq;
-        }
-      } else if (drawdownStrategy === 'cashFirst_qqqThenSpy') {
-        const fromQqq = Math.min(withdrawalAmount, qqq);
-        qqq -= fromQqq;
-        withdrawalAmount -= fromQqq;
-
-        if (withdrawalAmount > 0) {
-          const fromSpy = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy;
-        }
-      } else if (drawdownStrategy === 'cashFirst_equalParts') {
-        const fromSpy = Math.min(withdrawalAmount / 2, spy);
-        spy -= fromSpy;
-        withdrawalAmount -= fromSpy;
-
-        const fromQqq = Math.min(withdrawalAmount / 2, qqq);
-        qqq -= fromQqq;
-        withdrawalAmount -= fromQqq;
-
-        // if one is depleted, take rest from other
-        if (withdrawalAmount > 0) {
-          const fromSpy2 = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy2;
-          withdrawalAmount -= fromSpy2;
-        }
-        if (withdrawalAmount > 0) {
-          const fromQqq2 = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq2;
-          withdrawalAmount -= fromQqq2;
-        }
-
-      } else if (drawdownStrategy === 'cashFirst_bestPerformer') {
-        if (spyReturns[y] >= qqqReturns[y]) { // SPY is better or equal
-          const fromSpy = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy;
-          withdrawalAmount -= fromSpy;
-          if (withdrawalAmount > 0) {
-            const fromQqq = Math.min(withdrawalAmount, qqq);
-            qqq -= fromQqq;
-          }
-        } else { // QQQ is better
-          const fromQqq = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq;
-          withdrawalAmount -= fromQqq;
-          if (withdrawalAmount > 0) {
-            const fromSpy = Math.min(withdrawalAmount, spy);
-            spy -= fromSpy;
-          }
-        }
-      } else if (drawdownStrategy === 'cashFirst_worstPerformer') {
-        if (spyReturns[y] <= qqqReturns[y]) { // SPY is worse or equal
-          const fromSpy = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy;
-          withdrawalAmount -= fromSpy;
-          if (withdrawalAmount > 0) {
-            const fromQqq = Math.min(withdrawalAmount, qqq);
-            qqq -= fromQqq;
-          }
-        } else { // QQQ is worse
-          const fromQqq = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq;
-          withdrawalAmount -= fromQqq;
-          if (withdrawalAmount > 0) {
-            const fromSpy = Math.min(withdrawalAmount, spy);
-            spy -= fromSpy;
-          }
-        }
-      }
-    }
-
-
-    const totalBeforeGrowth = cash + spy + qqq;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      balances[y + 1] = { total: 0, cash: 0, spy: 0, qqq: 0 };
-      continue; // No need to process further if failed
-    }
-
-    // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-
-    const totalAfterGrowth = cash + spy + qqq;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
-  }
-
-  return { balances, failedYear };
-}
-
-
-interface PortfolioTabProps {
+interface DrawdownTabProps {
   startBalance: number;
   cash: number;
   spy: number;
   qqq: number;
-  drawdownStrategy: DrawdownStrategy;
   horizon: number;
   withdrawRate: number;
   initialWithdrawalAmount: number;
@@ -399,12 +268,11 @@ interface PortfolioTabProps {
 
 import { CAPE_DATA } from "../data/cape";
 
-const DrawdownTab: React.FC<PortfolioTabProps> = ({
+const DrawdownTab: React.FC<DrawdownTabProps> = ({
   startBalance,
   cash,
   spy,
   qqq,
-  drawdownStrategy,
   horizon,
   withdrawRate,
   initialWithdrawalAmount,
@@ -460,9 +328,9 @@ const DrawdownTab: React.FC<PortfolioTabProps> = ({
       const spyReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.qqq);
       if (strategy === "guytonKlinger") {
-        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
       } else if (strategy === "floorAndCeiling") {
-        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
       } else if (strategy === "capeBased") {
         runs.push(simulateCapeBased(spyReturns, qqqReturns, cash, spy, qqq, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
       }
@@ -481,16 +349,16 @@ const DrawdownTab: React.FC<PortfolioTabProps> = ({
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
         if (strategy === "guytonKlinger") {
-          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
         } else if (strategy === "floorAndCeiling") {
-          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
         } else if (strategy === "capeBased") {
           runs.push(simulateCapeBased(spyReturns, qqqReturns, cash, spy, qqq, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
         }
       }
     }
     return runs;
-  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams]);
+  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams]);
 
 
   const stats = useMemo(() => {

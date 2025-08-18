@@ -16,7 +16,8 @@ export type DrawdownStrategy =
 export type DrawdownStrategies =
   | "guytonKlinger"
   | "floorAndCeiling"
-  | "capeBased";
+  | "capeBased"
+  | "fixedPercentage";
 
 
 export default function App() {

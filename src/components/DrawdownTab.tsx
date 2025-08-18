@@ -184,6 +184,66 @@ function simulateFloorAndCeiling(
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
 }
 
+function simulateFixedPercentage(
+  spyReturns: number[],
+  qqqReturns: number[],
+  initialCash: number,
+  initialSpy: number,
+  initialQqq: number,
+  horizon: number,
+  withdrawalRate: number,
+): PortfolioRunResult {
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const withdrawals = new Array(horizon).fill(0);
+  let cash = initialCash;
+  let spy = initialSpy;
+  let qqq = initialQqq;
+  const startBalance = initialCash + initialSpy + initialQqq;
+
+  balances[0] = { total: startBalance, cash, spy, qqq };
+  let failedYear: number | null = null;
+
+  for (let y = 0; y < horizon; y++) {
+    const withdrawalAmount = balances[y].total * withdrawalRate;
+    withdrawals[y] = withdrawalAmount;
+
+    // Drawdown from cash first
+    const fromCash = Math.min(withdrawalAmount, cash);
+    cash -= fromCash;
+    let remainingWithdrawal = withdrawalAmount - fromCash;
+
+    if (remainingWithdrawal > 0) {
+      // This is a simplified drawdown, will be replaced with the selected strategy
+      const fromSpy = Math.min(remainingWithdrawal, spy);
+      spy -= fromSpy;
+      remainingWithdrawal -= fromSpy;
+
+      if (remainingWithdrawal > 0) {
+        const fromQqq = Math.min(remainingWithdrawal, qqq);
+        qqq -= fromQqq;
+      }
+    }
+
+    const totalBeforeGrowth = cash + spy + qqq;
+    if (totalBeforeGrowth <= 0 && failedYear === null) {
+      failedYear = y + 1;
+      for (let i = y + 1; i <= horizon; i++) {
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0 };
+      }
+      break;
+    }
+
+    // Apply market returns
+    spy *= spyReturns[y];
+    qqq *= qqqReturns[y];
+
+    const totalAfterGrowth = cash + spy + qqq;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
+  }
+
+  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
+}
+
 function simulateCapeBased(
   spyReturns: number[],
   qqqReturns: number[],
@@ -306,6 +366,9 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     basePercentage: 0.02,
     capeFraction: 0.5,
   });
+  const [fixedPercentageParams, setFixedPercentageParams] = React.useState({
+    withdrawalRate: 0.04,
+  });
 
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
@@ -338,6 +401,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
       } else if (strategy === "capeBased") {
         runs.push(simulateCapeBased(spyReturns, qqqReturns, cash, spy, qqq, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
+      } else if (strategy === "fixedPercentage") {
+        runs.push(simulateFixedPercentage(spyReturns, qqqReturns, cash, spy, qqq, horizon, fixedPercentageParams.withdrawalRate));
       }
     } else {
       // Monte Carlo modes
@@ -359,12 +424,14 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
         } else if (strategy === "capeBased") {
           runs.push(simulateCapeBased(spyReturns, qqqReturns, cash, spy, qqq, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
+        } else if (strategy === "fixedPercentage") {
+          runs.push(simulateFixedPercentage(spyReturns, qqqReturns, cash, spy, qqq, horizon, fixedPercentageParams.withdrawalRate));
         }
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams]);
+  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
 
 
   const stats = useMemo(() => {
@@ -455,6 +522,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <option value="guytonKlinger">Guyton-Klinger</option>
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
+              <option value="fixedPercentage">Fixed % Drawdown</option>
             </select>
           </label>
 
@@ -472,6 +540,15 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               </label>
               <label className="block">Raise Percentage (%)
                 <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.raisePercentage * 100} onChange={e => setGuytonKlingerParams({...guytonKlingerParams, raisePercentage: parseFloat(e.target.value) / 100})} />
+              </label>
+            </div>
+          )}
+
+          {strategy === 'fixedPercentage' && (
+            <div className="space-y-2 text-sm border-t pt-2">
+              <h3 className="font-semibold">Fixed % Parameters</h3>
+              <label className="block">Withdrawal Rate (%)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={fixedPercentageParams.withdrawalRate * 100} onChange={e => setFixedPercentageParams({...fixedPercentageParams, withdrawalRate: parseFloat(e.target.value) / 100})} />
               </label>
             </div>
           )}
@@ -717,6 +794,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <h3 className="font-semibold">CAPE-Based</h3>
               <p>This strategy adjusts the withdrawal rate based on the Cyclically-Adjusted Price-to-Earnings (CAPE) ratio. The withdrawal rate is calculated as a base percentage plus a fraction of the CAPE yield (1 / CAPE).</p>
               <a href="https://jsevy.com/wordpress/index.php/finance-and-retirement/variable-withdrawal-schemes-guyton-klinger-dynamic-spending-and-cape-based/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Learn more at jsevy.com</a>
+            </div>
+          )}
+          {strategy === 'fixedPercentage' && (
+            <div>
+              <h3 className="font-semibold">Fixed % Drawdown</h3>
+              <p>This strategy withdraws a fixed percentage of the remaining portfolio balance each year. For example, if the rate is 4% and the portfolio is worth $1M, you'd withdraw $40,000. If the portfolio grows to $1.2M next year, you'd withdraw $48,000.</p>
             </div>
           )}
         </div>

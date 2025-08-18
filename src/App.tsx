@@ -192,6 +192,7 @@ export default function App() {
             cash={cash}
             spy={spy}
             qqq={qqq}
+            bonds={bonds}
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}

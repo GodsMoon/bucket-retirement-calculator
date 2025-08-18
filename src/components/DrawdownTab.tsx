@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid, ReferenceDot } from "recharts";
 import type { DrawdownStrategies } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
+import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 
 // ... (imports)
@@ -9,7 +10,7 @@ import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats
 // Custom RunResult for portfolio simulation
 // Custom RunResult for portfolio simulation
 type PortfolioRunResult = {
-  balances: { total: number; cash: number; spy: number; qqq: number }[];
+  balances: { total: number; cash: number; spy: number; qqq: number; bonds: number }[];
   withdrawals: number[];
   failedYear: number | null;
   guardrailTriggers: number[];
@@ -18,9 +19,11 @@ type PortfolioRunResult = {
 function simulateGuytonKlinger(
   spyReturns: number[],
   qqqReturns: number[],
+  bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBonds: number,
   horizon: number,
   initialWithdrawalRate: number,
   inflationRate: number,
@@ -30,16 +33,17 @@ function simulateGuytonKlinger(
   cutPercentage: number,
   raisePercentage: number
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals = new Array(horizon).fill(0);
   const guardrailTriggers: number[] = [];
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
-  const startBalance = initialCash + initialSpy + initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
   let withdrawalAmount = startBalance * initialWithdrawalRate;
 
-  balances[0] = { total: startBalance, cash, spy, qqq };
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -51,7 +55,6 @@ function simulateGuytonKlinger(
     let remainingWithdrawal = withdrawalAmount - fromCash;
 
     if (remainingWithdrawal > 0) {
-      // This is a simplified drawdown, will be replaced with the selected strategy
       const fromSpy = Math.min(remainingWithdrawal, spy);
       spy -= fromSpy;
       remainingWithdrawal -= fromSpy;
@@ -59,14 +62,20 @@ function simulateGuytonKlinger(
       if (remainingWithdrawal > 0) {
         const fromQqq = Math.min(remainingWithdrawal, qqq);
         qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq;
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
       }
       break;
     }
@@ -75,11 +84,12 @@ function simulateGuytonKlinger(
     const portfolioBeforeGrowth = totalBeforeGrowth;
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
-    const portfolioAfterGrowth = cash + spy + qqq;
+    bonds *= bondReturns[y];
+    const portfolioAfterGrowth = cash + spy + qqq + bonds;
     const lastYearReturn = (portfolioAfterGrowth / portfolioBeforeGrowth) - 1;
 
-    const totalAfterGrowth = cash + spy + qqq;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
 
     // Determine next year's withdrawal amount
     let nextWithdrawalAmount = withdrawalAmount;
@@ -109,9 +119,11 @@ function simulateGuytonKlinger(
 function simulateFloorAndCeiling(
   spyReturns: number[],
   qqqReturns: number[],
+  bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBonds: number,
   horizon: number,
   initialWithdrawalRate: number,
   inflationRate: number,
@@ -119,16 +131,17 @@ function simulateFloorAndCeiling(
   floor: number,
   ceiling: number
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
-  const startBalance = initialCash + initialSpy + initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
   const initialWithdrawalAmount = startBalance * initialWithdrawalRate;
   let withdrawalAmount = initialWithdrawalAmount;
 
-  balances[0] = { total: startBalance, cash, spy, qqq };
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -153,7 +166,6 @@ function simulateFloorAndCeiling(
     let remainingWithdrawal = withdrawalAmount - fromCash;
 
     if (remainingWithdrawal > 0) {
-      // This is a simplified drawdown, will be replaced with the selected strategy
       const fromSpy = Math.min(remainingWithdrawal, spy);
       spy -= fromSpy;
       remainingWithdrawal -= fromSpy;
@@ -161,14 +173,20 @@ function simulateFloorAndCeiling(
       if (remainingWithdrawal > 0) {
         const fromQqq = Math.min(remainingWithdrawal, qqq);
         qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq;
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
       }
       break;
     }
@@ -176,9 +194,10 @@ function simulateFloorAndCeiling(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -187,20 +206,23 @@ function simulateFloorAndCeiling(
 function simulateFixedPercentage(
   spyReturns: number[],
   qqqReturns: number[],
+  bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBonds: number,
   horizon: number,
   withdrawalRate: number,
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
-  const startBalance = initialCash + initialSpy + initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq };
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -213,7 +235,6 @@ function simulateFixedPercentage(
     let remainingWithdrawal = withdrawalAmount - fromCash;
 
     if (remainingWithdrawal > 0) {
-      // This is a simplified drawdown, will be replaced with the selected strategy
       const fromSpy = Math.min(remainingWithdrawal, spy);
       spy -= fromSpy;
       remainingWithdrawal -= fromSpy;
@@ -221,14 +242,20 @@ function simulateFixedPercentage(
       if (remainingWithdrawal > 0) {
         const fromQqq = Math.min(remainingWithdrawal, qqq);
         qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq;
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
       }
       break;
     }
@@ -236,9 +263,10 @@ function simulateFixedPercentage(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -247,22 +275,25 @@ function simulateFixedPercentage(
 function simulateCapeBased(
   spyReturns: number[],
   qqqReturns: number[],
+  bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBonds: number,
   horizon: number,
   basePercentage: number,
   capeFraction: number,
   capeData: { [year: number]: number }
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
-  const startBalance = initialCash + initialSpy + initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq };
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -280,7 +311,6 @@ function simulateCapeBased(
     let remainingWithdrawal = withdrawalAmount - fromCash;
 
     if (remainingWithdrawal > 0) {
-      // This is a simplified drawdown, will be replaced with the selected strategy
       const fromSpy = Math.min(remainingWithdrawal, spy);
       spy -= fromSpy;
       remainingWithdrawal -= fromSpy;
@@ -288,14 +318,20 @@ function simulateCapeBased(
       if (remainingWithdrawal > 0) {
         const fromQqq = Math.min(remainingWithdrawal, qqq);
         qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq;
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
       }
       break;
     }
@@ -303,9 +339,10 @@ function simulateCapeBased(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -317,6 +354,7 @@ interface DrawdownTabProps {
   cash: number;
   spy: number;
   qqq: number;
+  bonds: number;
   horizon: number;
   withdrawRate: number;
   initialWithdrawalAmount: number;
@@ -340,6 +378,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   cash,
   spy,
   qqq,
+  bonds,
   horizon,
   withdrawRate,
   initialWithdrawalAmount,
@@ -379,15 +418,21 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y)).sort((a, b) => a - b);
+    const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
+    return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
 
   const returnsByYear = useMemo(() => {
-    const map = new Map<number, { spy: number, qqq: number }>();
+    const map = new Map<number, { spy: number; qqq: number; bond: number }>();
     const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
+    const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
-      map.set(year, { spy: spyReturnsMap.get(year)!, qqq: qqqReturnsMap.get(year)! });
+      map.set(year, {
+        spy: spyReturnsMap.get(year)!,
+        qqq: qqqReturnsMap.get(year)!,
+        bond: bondReturnsMap.get(year)!,
+      });
     }
     return map;
   }, [years]);
@@ -399,14 +444,15 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     if (mode === "actual-seq") {
       const spyReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.qqq);
+      const bondReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.bond);
       if (strategy === "guytonKlinger") {
-        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
       } else if (strategy === "floorAndCeiling") {
-        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
       } else if (strategy === "capeBased") {
-        runs.push(simulateCapeBased(spyReturns, qqqReturns, cash, spy, qqq, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
+        runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
       } else if (strategy === "fixedPercentage") {
-        runs.push(simulateFixedPercentage(spyReturns, qqqReturns, cash, spy, qqq, horizon, fixedPercentageParams.withdrawalRate));
+        runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
       }
     } else {
       // Monte Carlo modes
@@ -422,20 +468,21 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         }
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
+        const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bond);
         if (strategy === "guytonKlinger") {
-          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
         } else if (strategy === "floorAndCeiling") {
-          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
         } else if (strategy === "capeBased") {
-          runs.push(simulateCapeBased(spyReturns, qqqReturns, cash, spy, qqq, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
+          runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
         } else if (strategy === "fixedPercentage") {
-          runs.push(simulateFixedPercentage(spyReturns, qqqReturns, cash, spy, qqq, horizon, fixedPercentageParams.withdrawalRate));
+          runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
         }
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
+  }, [cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
 
 
   const stats = useMemo(() => {
@@ -470,7 +517,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-sm text-slate-600">Data: S&P 500 and NASDAQ 100 total return</div>
+      <div className="text-sm text-slate-600">Data: S&P 500, NASDAQ 100 and 10Y Treasury total return</div>
 
       <section className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl shadow p-4 space-y-3">
@@ -484,6 +531,9 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           </label>
           <label className="block text-sm">QQQ (NASDAQ 100)
             <input type="number" className="mt-1 w-full border rounded-xl p-2" value={qqq} step={10000} onChange={e => onParamChange('qqq', Number(e.target.value))} />
+          </label>
+          <label className="block text-sm">Bonds (10Y Treasury)
+            <input type="number" className="mt-1 w-full border rounded-xl p-2" value={bonds} step={10000} onChange={e => onParamChange('bonds', Number(e.target.value))} />
           </label>
           <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
 
@@ -717,7 +767,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq }))}
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -725,8 +775,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -735,6 +785,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#ff8042" fill="#ff8042" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

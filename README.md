@@ -1,74 +1,40 @@
-<<<<<<< HEAD
-# React + TypeScript + Vite
+# Bucket Retirement Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bucket Retirement Calculator tests the classic 4% retirement withdrawal rule across different investment buckets. Built with React, TypeScript, Vite and Tailwind CSS, it lets you run historical or Monte Carlo simulations for the S&P 500, Nasdaq 100 or a custom mix of cash, SPY and QQQ to see how long your savings may last.
 
-Currently, two official plugins are available:
+## Live Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The latest build is available at [bucket-retirement-calculator.vercel.app](https://bucket-retirement-calculator.vercel.app/).
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Asset buckets** – model a single index or mix cash, S&P 500 (SPY) and Nasdaq 100 (QQQ).
+- **Drawdown strategies** – cash first, best/worst performer, equal parts and more.
+- **Withdrawal rules** – Guyton–Klinger, floor & ceiling, CAPE-based or fixed percentage.
+- **Monte Carlo modes** – run historical sequences, random start years, shuffled returns or bootstrap samples.
+- **Inflation controls** – toggle CPI adjustments and choose a custom inflation rate.
+- **Interactive charts** – visualize portfolio balances and success rates over the retirement horizon.
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open the URL printed by the dev command in your browser to explore the app.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Additional scripts
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-=======
-# bucket-retirement-calculator
-testing the 4% rule for different assets
->>>>>>> bab2024deaeb6afca996a3f18f2c1fc82e33d2c5
+- `npm run build` – generate a production build
+- `npm run preview` – serve the production build locally
+- `npm run lint` – run ESLint checks
+
+## Data
+
+Historical index data is sourced from Robert Shiller's *ie_data.xls* dataset included in the repository.
+
+## License
+
+Distributed under the GPL-3.0 License. See [LICENSE](./LICENSE) for details.
+

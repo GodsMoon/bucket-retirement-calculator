@@ -1,98 +1,8 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
-
-// S&P 500 Total Returns by Year (TOTAL RETURN = price + dividends), 1946-2025
-const TOTAL_RETURNS: { year: number; returnPct: number }[] = [
-  { year: 2025, returnPct: 10.84 },
-  { year: 2024, returnPct: 25.02 },
-  { year: 2023, returnPct: 26.29 },
-  { year: 2022, returnPct: -18.11 },
-  { year: 2021, returnPct: 28.71 },
-  { year: 2020, returnPct: 18.40 },
-  { year: 2019, returnPct: 31.49 },
-  { year: 2018, returnPct: -4.38 },
-  { year: 2017, returnPct: 21.83 },
-  { year: 2016, returnPct: 11.96 },
-  { year: 2015, returnPct: 1.38 },
-  { year: 2014, returnPct: 13.69 },
-  { year: 2013, returnPct: 32.39 },
-  { year: 2012, returnPct: 16.00 },
-  { year: 2011, returnPct: 2.11 },
-  { year: 2010, returnPct: 15.06 },
-  { year: 2009, returnPct: 26.46 },
-  { year: 2008, returnPct: -37.00 },
-  { year: 2007, returnPct: 5.49 },
-  { year: 2006, returnPct: 15.79 },
-  { year: 2005, returnPct: 4.91 },
-  { year: 2004, returnPct: 10.88 },
-  { year: 2003, returnPct: 28.68 },
-  { year: 2002, returnPct: -22.10 },
-  { year: 2001, returnPct: -11.89 },
-  { year: 2000, returnPct: -9.10 },
-  { year: 1999, returnPct: 21.04 },
-  { year: 1998, returnPct: 28.58 },
-  { year: 1997, returnPct: 33.36 },
-  { year: 1996, returnPct: 22.96 },
-  { year: 1995, returnPct: 37.58 },
-  { year: 1994, returnPct: 1.32 },
-  { year: 1993, returnPct: 10.08 },
-  { year: 1992, returnPct: 7.62 },
-  { year: 1991, returnPct: 30.47 },
-  { year: 1990, returnPct: -3.10 },
-  { year: 1989, returnPct: 31.69 },
-  { year: 1988, returnPct: 16.61 },
-  { year: 1987, returnPct: 5.25 },
-  { year: 1986, returnPct: 18.67 },
-  { year: 1985, returnPct: 31.73 },
-  { year: 1984, returnPct: 6.27 },
-  { year: 1983, returnPct: 22.56 },
-  { year: 1982, returnPct: 21.55 },
-  { year: 1981, returnPct: -4.91 },
-  { year: 1980, returnPct: 32.42 },
-  { year: 1979, returnPct: 18.44 },
-  { year: 1978, returnPct: 6.56 },
-  { year: 1977, returnPct: -7.18 },
-  { year: 1976, returnPct: 23.84 },
-  { year: 1975, returnPct: 37.20 },
-  { year: 1974, returnPct: -26.47 },
-  { year: 1973, returnPct: -14.66 },
-  { year: 1972, returnPct: 18.98 },
-  { year: 1971, returnPct: 14.31 },
-  { year: 1970, returnPct: 4.01 },
-  { year: 1969, returnPct: -8.50 },
-  { year: 1968, returnPct: 11.06 },
-  { year: 1967, returnPct: 23.98 },
-  { year: 1966, returnPct: -10.06 },
-  { year: 1965, returnPct: 12.45 },
-  { year: 1964, returnPct: 16.48 },
-  { year: 1963, returnPct: 22.80 },
-  { year: 1962, returnPct: -8.73 },
-  { year: 1961, returnPct: 26.89 },
-  { year: 1960, returnPct: 0.47 },
-  { year: 1959, returnPct: 11.96 },
-  { year: 1958, returnPct: 43.36 },
-  { year: 1957, returnPct: -10.78 },
-  { year: 1956, returnPct: 6.56 },
-  { year: 1955, returnPct: 31.56 },
-  { year: 1954, returnPct: 52.62 },
-  { year: 1953, returnPct: -0.99 },
-  { year: 1952, returnPct: 18.37 },
-  { year: 1951, returnPct: 24.02 },
-  { year: 1950, returnPct: 31.71 },
-  { year: 1949, returnPct: 18.79 },
-  { year: 1948, returnPct: 5.50 },
-  { year: 1947, returnPct: 5.71 },
-  { year: 1946, returnPct: -8.07 },
-];
-
-// Helper: convert percent to multiplier
-const pctToMult = (pct: number) => 1 + pct / 100;
-
-// Simulation engine
-type RunResult = {
-  balances: number[]; // length horizon+1 including year 0
-  failedYear: number | null; // first year that ends <= 0 (1-based), else null
-};
+import { SP500_TOTAL_RETURNS } from "../data/returns";
+import { pctToMult, bootstrapSample, shuffle, percentile } from "../lib/simulation";
+import type { RunResult } from "../lib/simulation";
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon
@@ -126,35 +36,6 @@ function simulatePath(
   return { balances, failedYear };
 }
 
-function bootstrapSample<T>(arr: T[], n: number): T[] {
-  const out: T[] = [];
-  for (let i = 0; i < n; i++) {
-    const j = Math.floor(Math.random() * arr.length);
-    out.push(arr[j]);
-  }
-  return out;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// Percentile helper
-function percentile(values: number[], p: number): number {
-  if (values.length === 0) return NaN;
-  const sorted = values.slice().sort((a, b) => a - b);
-  const idx = (sorted.length - 1) * p;
-  const lo = Math.floor(idx), hi = Math.ceil(idx);
-  if (lo === hi) return sorted[lo];
-  const w = idx - lo;
-  return sorted[lo] * (1 - w) + sorted[hi] * w;
-}
-
 interface SPTabProps {
   startBalance: number;
   horizon: number;
@@ -167,7 +48,7 @@ interface SPTabProps {
   seed: number | "";
   startYear: number;
   onRefresh: () => void;
-  onParamChange: (param: string, value: any) => void;
+  onParamChange: (param: string, value: string | number | boolean) => void;
   refreshCounter: number;
 }
 
@@ -184,14 +65,14 @@ const SPTab: React.FC<SPTabProps> = ({
   startYear,
   onRefresh,
   onParamChange,
-  refreshCounter
+  refreshCounter,
 }) => {
-  const years = useMemo(() => TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
-  const availableMultipliers = useMemo(() => TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
+  const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
+  const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
 
   // Build deterministic return sequence for the chosen horizon using ACTUAL order (most recent last)
   const actualSequenceMultipliers = useMemo(() => {
-    const sorted = TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
+    const sorted = SP500_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
     const yearsSorted = sorted.map(d => d.year);
     const mults = sorted.map(d => pctToMult(d.returnPct));
 
@@ -205,7 +86,7 @@ const SPTab: React.FC<SPTabProps> = ({
 
   // Build sequences that start at random years but proceed chronologically
   const randomStartSequenceMultipliers = useMemo(() => {
-    const multipliersChrono = TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year).map(d => pctToMult(d.returnPct));
+    const multipliersChrono = SP500_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year).map(d => pctToMult(d.returnPct));
     const totalYears = multipliersChrono.length;
 
     const sequences: number[][] = [];
@@ -399,15 +280,25 @@ const SPTab: React.FC<SPTabProps> = ({
       </section>
 
       <section className="bg-white rounded-2xl shadow p-4">
-        <h2 className="font-semibold mb-2">Portfolio Trajectory Bands</h2>
+        <div className="flex items-center justify-between">
+            <h2 className="font-semibold mb-2">Portfolio Trajectory Bands</h2>
+            <button
+              className="text-lg hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+          </div>
         {stats && (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
-                <YAxis tickFormatter={(v) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
-                <Tooltip formatter={(v: any) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
+                <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
+                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
                 <Legend />
                 <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
                 <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
@@ -421,7 +312,17 @@ const SPTab: React.FC<SPTabProps> = ({
       </section>
 
       <section className="bg-white rounded-2xl shadow p-4">
-        <h2 className="font-semibold mb-2">Sample Run Trajectory</h2>
+        <div className="flex items-center justify-between">
+            <h2 className="font-semibold mb-2">Sample Run Trajectory</h2>
+            <button
+              className="text-lg hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+          </div>
         {sampleRun && (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -429,7 +330,7 @@ const SPTab: React.FC<SPTabProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v) => currency.format(v as number)} />
-                <Tooltip formatter={(v: any) => typeof v === 'number' ? currency.format(v) : v} />
+                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} />
                 <Line type="monotone" dataKey="balance" name="Balance" dot={false} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>

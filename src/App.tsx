@@ -1,11 +1,25 @@
 import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
+import PortfolioTab from "./components/PortfolioTab";
+
+export type DrawdownStrategy =
+  | "cashFirst_spyThenQqq"
+  | "cashFirst_qqqThenSpy"
+  | "cashFirst_equalParts"
+  | "cashFirst_bestPerformer"
+  | "cashFirst_worstPerformer";
+
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100">("sp500");
-  const [startBalance, setStartBalance] = useState(1_000_000);
+  const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio">("sp500");
+  const [cash, setCash] = useState(100_000);
+  const [spy, setSpy] = useState(450_000);
+  const [qqq, setQqq] = useState(450_000);
+  const startBalance = useMemo(() => cash + spy + qqq, [cash, spy, qqq]);
+  const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>("cashFirst_spyThenQqq");
   const [horizon, setHorizon] = useState(30);
   const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
   const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(Math.round(startBalance * (4 / 100)));
@@ -17,30 +31,33 @@ export default function App() {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(1986); // Default start year
 
-  const handleParamChange = (param: string, value: any) => {
+  const handleParamChange = (param: string, value: string | number | boolean) => {
     switch (param) {
-      case 'startBalance':
-        setStartBalance(value);
-        // Recalculate initial withdrawal amount based on new start balance and current withdraw rate
-        setInitialWithdrawalAmount(value * (withdrawRate / 100));
-        break;
-      case 'horizon': setHorizon(value); break;
-      case 'withdrawRate':
-        setWithdrawRate(value);
+      case 'cash': setCash(parseFloat(value as string)); break;
+      case 'spy': setSpy(parseFloat(value as string)); break;
+      case 'qqq': setQqq(parseFloat(value as string)); break;
+      case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
+      case 'horizon': setHorizon(parseFloat(value as string)); break;
+      case 'withdrawRate': {
+        const numValue = parseFloat(value as string);
+        setWithdrawRate(numValue);
         // Update initial withdrawal amount based on new rate
-        setInitialWithdrawalAmount(startBalance * (value / 100));
+        setInitialWithdrawalAmount(startBalance * (numValue / 100));
         break;
-      case 'initialWithdrawalAmount':
-        setInitialWithdrawalAmount(value);
+      }
+      case 'initialWithdrawalAmount': {
+        const numValue = parseFloat(value as string);
+        setInitialWithdrawalAmount(numValue);
         // Update withdraw rate based on new amount
-        setWithdrawRate((value / startBalance) * 100);
+        setWithdrawRate((numValue / startBalance) * 100);
         break;
-      case 'inflationAdjust': setInflationAdjust(value); break;
-      case 'inflationRate': setInflationRate(value); break;
-      case 'mode': setMode(value); break;
-      case 'numRuns': setNumRuns(value); break;
-      case 'seed': setSeed(value); break;
-      case 'startYear': setStartYear(value); break;
+      }
+      case 'inflationAdjust': setInflationAdjust(value as boolean); break;
+      case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
+      case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
+      case 'numRuns': setNumRuns(parseFloat(value as string)); break;
+      case 'seed': setSeed(value === "" ? "" : parseFloat(value as string)); break;
+      case 'startYear': setStartYear(parseFloat(value as string)); break;
     }
   };
 
@@ -86,6 +103,28 @@ export default function App() {
         {activeTab === 'nasdaq100' && (
           <Nasdaq100Tab
             startBalance={startBalance}
+            horizon={horizon}
+            withdrawRate={withdrawRate}
+            initialWithdrawalAmount={initialWithdrawalAmount}
+            inflationAdjust={inflationAdjust}
+            inflationRate={inflationRate}
+            mode={mode}
+            numRuns={numRuns}
+            seed={seed}
+            startYear={startYear}
+            onRefresh={handleRefresh}
+            onParamChange={handleParamChange}
+            refreshCounter={refreshCounter}
+          />
+        )}
+
+        {activeTab === 'portfolio' && (
+          <PortfolioTab
+            startBalance={startBalance}
+            cash={cash}
+            spy={spy}
+            qqq={qqq}
+            drawdownStrategy={drawdownStrategy}
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}

@@ -46,6 +46,7 @@ interface SPTabProps {
   horizon: number;
   withdrawRate: number;
   initialWithdrawalAmount: number;
+  isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
   inflationRate: number;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
@@ -62,6 +63,7 @@ const SPTab: React.FC<SPTabProps> = ({
   horizon,
   withdrawRate,
   initialWithdrawalAmount,
+  isInitialAmountLocked,
   inflationAdjust,
   inflationRate,
   mode,
@@ -198,9 +200,19 @@ const SPTab: React.FC<SPTabProps> = ({
             <label className="block text-sm flex-1">% of initial
               <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
             </label>
-            <label className="block text-sm flex-1">Initial $
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={Math.round(initialWithdrawalAmount)} step={1000} onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
-            </label>
+            <div className="flex-1">
+              <label className="block text-sm">Initial $</label>
+              <div className="flex items-center mt-1">
+                <input type="number" className="w-full border rounded-xl p-2" value={Math.round(initialWithdrawalAmount)} step={1000} onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
+                <button
+                  className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
+                  onClick={() => onParamChange('toggleInitialAmountLock', true)}
+                  title={isInitialAmountLocked ? "Unlock initial withdrawal amount" : "Lock initial withdrawal amount"}
+                >
+                  {isInitialAmountLocked ? '🔒' : '🔓'}
+                </button>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />

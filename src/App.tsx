@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMemo } from "react";
+import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "./data/returns";
+import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "./data/bonds";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
@@ -26,7 +28,8 @@ export default function App() {
   const [cash, setCash] = useState(100_000);
   const [spy, setSpy] = useState(450_000);
   const [qqq, setQqq] = useState(450_000);
-  const portfolioStartBalance = useMemo(() => cash + spy + qqq, [cash, spy, qqq]);
+  const [bonds, setBonds] = useState(0);
+  const portfolioStartBalance = useMemo(() => cash + spy + qqq + bonds, [cash, spy, qqq, bonds]);
   const [startBalance, setStartBalance] = useState(1_000_000);
   const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>("cashFirst_spyThenQqq");
   const [horizon, setHorizon] = useState(30);
@@ -39,7 +42,13 @@ export default function App() {
   const [numRuns, setNumRuns] = useState(1000);
   const [seed, setSeed] = useState<number | "">("");
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const [startYear, setStartYear] = useState<number>(1986); // Default start year
+  const years = useMemo(() => {
+    const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
+    const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
+    const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
+    return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
+  }, []);
+  const [startYear, setStartYear] = useState<number>(years[0]);
 
   const handleParamChange = (param: string, value: string | number | boolean) => {
     switch (param) {
@@ -47,6 +56,7 @@ export default function App() {
       case 'cash': setCash(parseFloat(value as string)); break;
       case 'spy': setSpy(parseFloat(value as string)); break;
       case 'qqq': setQqq(parseFloat(value as string)); break;
+      case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
       case 'horizon': setHorizon(parseFloat(value as string)); break;
       case 'withdrawRate':
@@ -147,6 +157,7 @@ export default function App() {
             cash={cash}
             spy={spy}
             qqq={qqq}
+            bonds={bonds}
             drawdownStrategy={drawdownStrategy}
             horizon={horizon}
             withdrawRate={withdrawRate}

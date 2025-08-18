@@ -2,13 +2,14 @@ import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import type { DrawdownStrategy } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
+import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 
 // ... (imports)
 
 // Custom RunResult for portfolio simulation
 type PortfolioRunResult = {
-  balances: { total: number; cash: number; spy: number; qqq: number }[];
+  balances: { total: number; cash: number; spy: number; qqq: number; bonds: number }[];
   failedYear: number | null;
   withdrawals: number[];
 };
@@ -16,31 +17,33 @@ type PortfolioRunResult = {
 function simulatePortfolioPath(
   spyReturns: number[],
   qqqReturns: number[],
+  bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBonds: number,
   horizon: number,
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
   drawdownStrategy: DrawdownStrategy
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
-  const startBalance = initialCash + initialSpy + initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
   const baseWithdrawal = startBalance * initialWithdrawalRate;
 
-  balances[0] = { total: startBalance, cash, spy, qqq };
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
     let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
     withdrawals[y] = withdrawalAmount;
 
-    // Drawdown from cash first
     const fromCash = Math.min(withdrawalAmount, cash);
     cash -= fromCash;
     withdrawalAmount -= fromCash;
@@ -50,94 +53,100 @@ function simulatePortfolioPath(
         const fromSpy = Math.min(withdrawalAmount, spy);
         spy -= fromSpy;
         withdrawalAmount -= fromSpy;
-
         if (withdrawalAmount > 0) {
           const fromQqq = Math.min(withdrawalAmount, qqq);
           qqq -= fromQqq;
+          withdrawalAmount -= fromQqq;
+        }
+        if (withdrawalAmount > 0) {
+          const fromBonds = Math.min(withdrawalAmount, bonds);
+          bonds -= fromBonds;
+          withdrawalAmount -= fromBonds;
         }
       } else if (drawdownStrategy === 'cashFirst_qqqThenSpy') {
         const fromQqq = Math.min(withdrawalAmount, qqq);
         qqq -= fromQqq;
         withdrawalAmount -= fromQqq;
-
         if (withdrawalAmount > 0) {
           const fromSpy = Math.min(withdrawalAmount, spy);
           spy -= fromSpy;
+          withdrawalAmount -= fromSpy;
+        }
+        if (withdrawalAmount > 0) {
+          const fromBonds = Math.min(withdrawalAmount, bonds);
+          bonds -= fromBonds;
+          withdrawalAmount -= fromBonds;
         }
       } else if (drawdownStrategy === 'cashFirst_equalParts') {
-        const fromSpy = Math.min(withdrawalAmount / 2, spy);
+        const part = withdrawalAmount / 3;
+        const fromSpy = Math.min(part, spy);
         spy -= fromSpy;
         withdrawalAmount -= fromSpy;
-
-        const fromQqq = Math.min(withdrawalAmount / 2, qqq);
+        const fromQqq = Math.min(part, qqq);
         qqq -= fromQqq;
         withdrawalAmount -= fromQqq;
-
-        // if one is depleted, take rest from other
+        const fromBonds = Math.min(part, bonds);
+        bonds -= fromBonds;
+        withdrawalAmount -= fromBonds;
         if (withdrawalAmount > 0) {
-          const fromSpy2 = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy2;
-          withdrawalAmount -= fromSpy2;
+          const addSpy = Math.min(withdrawalAmount, spy);
+          spy -= addSpy;
+          withdrawalAmount -= addSpy;
         }
         if (withdrawalAmount > 0) {
-          const fromQqq2 = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq2;
-          withdrawalAmount -= fromQqq2;
+          const addQqq = Math.min(withdrawalAmount, qqq);
+          qqq -= addQqq;
+          withdrawalAmount -= addQqq;
         }
-
+        if (withdrawalAmount > 0) {
+          const addBonds = Math.min(withdrawalAmount, bonds);
+          bonds -= addBonds;
+          withdrawalAmount -= addBonds;
+        }
       } else if (drawdownStrategy === 'cashFirst_bestPerformer') {
-        if (spyReturns[y] >= qqqReturns[y]) { // SPY is better or equal
-          const fromSpy = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy;
-          withdrawalAmount -= fromSpy;
-          if (withdrawalAmount > 0) {
-            const fromQqq = Math.min(withdrawalAmount, qqq);
-            qqq -= fromQqq;
-          }
-        } else { // QQQ is better
-          const fromQqq = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq;
-          withdrawalAmount -= fromQqq;
-          if (withdrawalAmount > 0) {
-            const fromSpy = Math.min(withdrawalAmount, spy);
-            spy -= fromSpy;
-          }
+        const perf = [
+          { key: 'spy', ret: spyReturns[y], bal: spy },
+          { key: 'qqq', ret: qqqReturns[y], bal: qqq },
+          { key: 'bonds', ret: bondReturns[y], bal: bonds },
+        ].sort((a, b) => b.ret - a.ret);
+        for (const p of perf) {
+          if (withdrawalAmount <= 0) break;
+          const take = Math.min(withdrawalAmount, p.bal);
+          if (p.key === 'spy') spy -= take;
+          else if (p.key === 'qqq') qqq -= take;
+          else bonds -= take;
+          withdrawalAmount -= take;
         }
       } else if (drawdownStrategy === 'cashFirst_worstPerformer') {
-        if (spyReturns[y] <= qqqReturns[y]) { // SPY is worse or equal
-          const fromSpy = Math.min(withdrawalAmount, spy);
-          spy -= fromSpy;
-          withdrawalAmount -= fromSpy;
-          if (withdrawalAmount > 0) {
-            const fromQqq = Math.min(withdrawalAmount, qqq);
-            qqq -= fromQqq;
-          }
-        } else { // QQQ is worse
-          const fromQqq = Math.min(withdrawalAmount, qqq);
-          qqq -= fromQqq;
-          withdrawalAmount -= fromQqq;
-          if (withdrawalAmount > 0) {
-            const fromSpy = Math.min(withdrawalAmount, spy);
-            spy -= fromSpy;
-          }
+        const perf = [
+          { key: 'spy', ret: spyReturns[y], bal: spy },
+          { key: 'qqq', ret: qqqReturns[y], bal: qqq },
+          { key: 'bonds', ret: bondReturns[y], bal: bonds },
+        ].sort((a, b) => a.ret - b.ret);
+        for (const p of perf) {
+          if (withdrawalAmount <= 0) break;
+          const take = Math.min(withdrawalAmount, p.bal);
+          if (p.key === 'spy') spy -= take;
+          else if (p.key === 'qqq') qqq -= take;
+          else bonds -= take;
+          withdrawalAmount -= take;
         }
       }
     }
 
-
-    const totalBeforeGrowth = cash + spy + qqq;
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
-      balances[y + 1] = { total: 0, cash: 0, spy: 0, qqq: 0 };
-      continue; // No need to process further if failed
+      balances[y + 1] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+      continue;
     }
 
-    // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
   }
 
   return { balances, failedYear, withdrawals };
@@ -149,6 +158,7 @@ interface PortfolioTabProps {
   cash: number;
   spy: number;
   qqq: number;
+  bonds: number;
   drawdownStrategy: DrawdownStrategy;
   horizon: number;
   withdrawRate: number;
@@ -171,6 +181,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   cash,
   spy,
   qqq,
+  bonds,
   drawdownStrategy,
   horizon,
   withdrawRate,
@@ -192,15 +203,21 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y)).sort((a, b) => a - b);
+    const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
+    return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
 
   const returnsByYear = useMemo(() => {
-    const map = new Map<number, { spy: number, qqq: number }>();
+    const map = new Map<number, { spy: number; qqq: number; bonds: number }>();
     const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
+    const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
-      map.set(year, { spy: spyReturnsMap.get(year)!, qqq: qqqReturnsMap.get(year)! });
+      map.set(year, {
+        spy: spyReturnsMap.get(year)!,
+        qqq: qqqReturnsMap.get(year)!,
+        bonds: bondReturnsMap.get(year)!,
+      });
     }
     return map;
   }, [years]);
@@ -212,7 +229,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     if (mode === "actual-seq") {
       const spyReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.qqq);
-      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+      const bondReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.bonds);
+      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
     } else {
       // Monte Carlo modes
       for (let i = 0; i < numRuns; i++) {
@@ -227,12 +245,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         }
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
-        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, cash, spy, qqq, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+        const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
+        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cash, spy, qqq, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter]);
+  }, [cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter]);
 
 
   const stats = useMemo(() => {
@@ -267,7 +286,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-sm text-slate-600">Data: S&P 500 and NASDAQ 100 total return</div>
+      <div className="text-sm text-slate-600">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
 
       <section className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl shadow p-4 space-y-3">
@@ -281,6 +300,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           </label>
           <label className="block text-sm">QQQ (NASDAQ 100)
             <input type="number" className="mt-1 w-full border rounded-xl p-2" value={qqq} step={10000} onChange={e => onParamChange('qqq', Number(e.target.value))} />
+          </label>
+          <label className="block text-sm">Bonds (10Y Treasury)
+            <input type="number" className="mt-1 w-full border rounded-xl p-2" value={bonds} step={10000} onChange={e => onParamChange('bonds', Number(e.target.value))} />
           </label>
           <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
 
@@ -338,9 +360,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
               value={drawdownStrategy}
               onChange={e => onParamChange('drawdownStrategy', e.target.value)}
             >
-              <option value="cashFirst_spyThenQqq">Cash 1st, then SPY, then QQQ</option>
-              <option value="cashFirst_qqqThenSpy">Cash 1st, then QQQ, then SPY</option>
-              <option value="cashFirst_equalParts">Cash 1st, then equal parts SPY & QQQ</option>
+              <option value="cashFirst_spyThenQqq">Cash 1st, then SPY, then QQQ, then Bonds</option>
+              <option value="cashFirst_qqqThenSpy">Cash 1st, then QQQ, then SPY, then Bonds</option>
+              <option value="cashFirst_equalParts">Cash 1st, then equal parts SPY, QQQ & Bonds</option>
               <option value="cashFirst_bestPerformer">Cash 1st, then best performer of year</option>
               <option value="cashFirst_worstPerformer">Cash 1st, then worst performer of year</option>
             </select>
@@ -461,7 +483,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq }))}
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -469,8 +491,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -479,6 +501,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

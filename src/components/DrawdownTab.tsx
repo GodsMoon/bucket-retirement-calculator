@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid, ReferenceDot } from "recharts";
 import type { DrawdownStrategies } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
@@ -7,10 +7,12 @@ import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats
 // ... (imports)
 
 // Custom RunResult for portfolio simulation
+// Custom RunResult for portfolio simulation
 type PortfolioRunResult = {
   balances: { total: number; cash: number; spy: number; qqq: number }[];
   withdrawals: number[];
   failedYear: number | null;
+  guardrailTriggers: number[];
 };
 
 function simulateGuytonKlinger(
@@ -30,6 +32,7 @@ function simulateGuytonKlinger(
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
   const withdrawals = new Array(horizon).fill(0);
+  const guardrailTriggers: number[] = [];
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -91,14 +94,16 @@ function simulateGuytonKlinger(
     if (y < horizon - 15) { // Longevity rule
       if (currentWithdrawalRate > initialWithdrawalRate * (1 + guardrailUpper)) {
         nextWithdrawalAmount *= (1 - cutPercentage);
+        guardrailTriggers.push(y + 1);
       } else if (currentWithdrawalRate < initialWithdrawalRate * (1 - guardrailLower)) {
         nextWithdrawalAmount *= (1 + raisePercentage);
+        guardrailTriggers.push(y + 1);
       }
     }
     withdrawalAmount = nextWithdrawalAmount;
   }
 
-  return { balances, withdrawals, failedYear };
+  return { balances, withdrawals, failedYear, guardrailTriggers };
 }
 
 function simulateFloorAndCeiling(
@@ -176,7 +181,7 @@ function simulateFloorAndCeiling(
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
   }
 
-  return { balances, withdrawals, failedYear };
+  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
 }
 
 function simulateCapeBased(
@@ -243,7 +248,7 @@ function simulateCapeBased(
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
   }
 
-  return { balances, withdrawals, failedYear };
+  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
 }
 
 
@@ -650,12 +655,42 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         {sampleRun && (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sampleRun.balances.map((b, i) => ({ year: i, balance: b.total }))} margin={{ left: 32, right: 8, top: 8, bottom: 8 }}>
+              <LineChart
+                data={sampleRun.balances.map((b, i) => ({
+                  year: i,
+                  balance: b.total,
+                  withdrawal: sampleRun.withdrawals[i],
+                  triggered: sampleRun.guardrailTriggers.includes(i),
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
-                <YAxis tickFormatter={(v) => currency.format(v as number)} />
-                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} />
-                <Line type="monotone" dataKey="balance" name="Total Balance" dot={false} strokeWidth={2} />
+                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    if (name === "balance") return [currency.format(value), "Balance"];
+                    if (name === "withdrawal") return [currency.format(value), "Withdrawal"];
+                    return [value, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
+                {sampleRun.guardrailTriggers.map((year) => (
+                  <ReferenceDot
+                    key={year}
+                    x={year}
+                    y={sampleRun.balances[year].total}
+                    r={5}
+                    fill="red"
+                    stroke="white"
+                    isFront
+                    name="Guardrail Trigger"
+                  />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>

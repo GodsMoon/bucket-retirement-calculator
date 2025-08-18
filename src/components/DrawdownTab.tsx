@@ -601,20 +601,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           </label>
 
           {strategy === 'guytonKlinger' && (
-            <div className="space-y-2 text-sm border-t pt-2">
-              <h3 className="font-semibold">Guyton-Klinger Parameters</h3>
-              <label className="block">Guardrail Upper (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.guardrailUpper * 100} onChange={e => setGuytonKlingerParams({...guytonKlingerParams, guardrailUpper: parseFloat(e.target.value) / 100})} />
-              </label>
-              <label className="block">Guardrail Lower (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.guardrailLower * 100} onChange={e => setGuytonKlingerParams({...guytonKlingerParams, guardrailLower: parseFloat(e.target.value) / 100})} />
-              </label>
-              <label className="block">Cut Percentage (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100})} />
-              </label>
-              <label className="block">Raise Percentage (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.raisePercentage * 100} onChange={e => setGuytonKlingerParams({...guytonKlingerParams, raisePercentage: parseFloat(e.target.value) / 100})} />
-              </label>
+            <div className="text-sm border-t pt-2">
+              <h3 className="font-semibold mb-2">Guyton-Klinger Parameters</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">Guardrail Upper (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.guardrailUpper * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailUpper: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Guardrail Lower (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.guardrailLower * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailLower: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Cut Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Raise Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.raisePercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, raisePercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+              </div>
             </div>
           )}
 

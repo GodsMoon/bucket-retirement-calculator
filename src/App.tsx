@@ -62,7 +62,6 @@ export default function App() {
         setWithdrawRate((numValue / startBalance) * 100);
         break;
       }
-      case 'toggleInitialAmountLock': setIsInitialAmountLocked(prev => !prev); break;
       case 'inflationAdjust': setInflationAdjust(value as boolean); break;
       case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
       case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
@@ -80,13 +79,18 @@ export default function App() {
   useEffect(() => {
     if (isInitialAmountLocked) {
       // If locked, initial withdrawal amount is king. Recalculate rate.
-      setWithdrawRate((initialWithdrawalAmount / activeStartBalance) * 100);
+      const newRate = (initialWithdrawalAmount / activeStartBalance) * 100;
+      if (withdrawRate !== newRate) {
+        setWithdrawRate(newRate);
+      }
     } else {
       // If not locked, withdraw rate is king. Recalculate initial amount.
-      setInitialWithdrawalAmount(activeStartBalance * (withdrawRate / 100));
+      const newAmount = activeStartBalance * (withdrawRate / 100);
+      if (initialWithdrawalAmount !== newAmount) {
+        setInitialWithdrawalAmount(newAmount);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStartBalance, isInitialAmountLocked]);
+  }, [activeStartBalance, isInitialAmountLocked, initialWithdrawalAmount, withdrawRate, setWithdrawRate, setInitialWithdrawalAmount]);
 
   const handleRefresh = () => {
     setRefreshCounter(prev => prev + 1);
@@ -110,6 +114,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -118,6 +123,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}
@@ -128,6 +134,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -136,6 +143,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}
@@ -150,6 +158,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -158,6 +167,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}
@@ -171,6 +181,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -179,6 +190,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}

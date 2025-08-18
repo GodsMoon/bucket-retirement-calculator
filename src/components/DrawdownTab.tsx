@@ -329,6 +329,7 @@ interface DrawdownTabProps {
   startYear: number;
   onRefresh: () => void;
   onParamChange: (param: string, value: string | number | boolean) => void;
+  setIsInitialAmountLocked: (value: React.SetStateAction<boolean>) => void;
   refreshCounter: number;
 }
 
@@ -351,6 +352,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   startYear,
   onRefresh,
   onParamChange,
+  setIsInitialAmountLocked,
   refreshCounter,
 }) => {
   const [strategy, setStrategy] = React.useState<DrawdownStrategies>("guytonKlinger");
@@ -490,13 +492,18 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <label className="block text-sm flex-1">% of initial
               <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.1} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
             </label>
-            <div className="flex-1">
+            <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100' : ''}`}>
               <label className="block text-sm">Initial $</label>
               <div className="flex items-center mt-1">
-                <input type="number" className="w-full border rounded-xl p-2" value={Math.round(initialWithdrawalAmount)} step={1000} onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
+                <input
+                  type="number"
+                  className={`w-full border rounded-xl p-2 transition-colors ${isInitialAmountLocked ? 'text-green-800 font-semibold' : ''}`}
+                  value={Math.round(initialWithdrawalAmount)}
+                  step={1000}
+                  onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
                 <button
                   className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
-                  onClick={() => onParamChange('toggleInitialAmountLock', true)}
+                  onClick={() => setIsInitialAmountLocked(prev => !prev)}
                   title={isInitialAmountLocked ? "Unlock initial withdrawal amount" : "Lock initial withdrawal amount"}
                 >
                   {isInitialAmountLocked ? '🔒' : '🔓'}

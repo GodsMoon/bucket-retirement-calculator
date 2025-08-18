@@ -5,6 +5,7 @@ export const pctToMult = (pct: number) => 1 + pct / 100;
 export type RunResult = {
   balances: number[]; // length horizon+1 including year 0
   failedYear: number | null; // first year that ends <= 0 (1-based), else null
+  withdrawals: number[];
 };
 
 export function bootstrapSample<T>(arr: T[], n: number): T[] {

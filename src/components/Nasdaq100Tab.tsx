@@ -13,19 +13,24 @@ function simulatePath(
 ): RunResult {
   const horizon = returns.length;
   const balances: number[] = new Array(horizon + 1).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let bal = startBalance;
   const baseWithdrawal = startBalance * initialWithdrawalRate;
   balances[0] = bal;
   let failedYear: number | null = null;
   for (let y = 0; y < horizon; y++) {
     const withdrawal = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
+    withdrawals[y] = withdrawal;
     bal = bal - withdrawal;
     if (bal <= 0 && failedYear === null) {
       failedYear = y + 1; // first year of failure
       bal = 0;
       balances[y + 1] = 0;
       // continue filling zeros for the remaining years
-      for (let k = y + 1; k < horizon; k++) balances[k + 1] = 0;
+      for (let k = y + 1; k < horizon; k++) {
+        balances[k + 1] = 0;
+        withdrawals[k] = 0;
+      }
       break;
     }
     // apply return for the year
@@ -33,7 +38,7 @@ function simulatePath(
     balances[y + 1] = bal;
   }
   // If never failed, balances filled to end
-  return { balances, failedYear };
+  return { balances, failedYear, withdrawals };
 }
 
 interface NasdaqTabProps {
@@ -167,7 +172,9 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
       });
     }
 
-    return { successRate, endingBalances, bands, ...drawdownStats };
+    const medianFifthYearWithdrawal = horizon >= 5 ? percentile(sims.map(s => s.withdrawals[4]), 0.5) : 0;
+
+    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -271,6 +278,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
           {stats && (
             <div className="space-y-2 text-sm">
               <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
+              {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
               <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
               <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
               <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>

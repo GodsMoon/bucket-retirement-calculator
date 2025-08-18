@@ -197,13 +197,15 @@ const SPTab: React.FC<SPTabProps> = ({
           <label className="block text-sm">Horizon (years)
             <input type="number" className="mt-1 w-full border rounded-xl p-2" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
           </label>
-          <h3 className="font-semibold">Withdraw Rate:</h3>
+          <h3 className="font-semibold">Starting Withdraw Rate:</h3>
           <div className="flex gap-4">
-            <label className="block text-sm pt-2 flex-1">% of initial
-              <input type="number" className="mt-1 w-full border rounded-xl p-2" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
+            <label className="block text-sm pt-2 flex-1">% of Starting Portfolio
+              <input type="number" className="mt-1 w-3/4 border rounded-xl p-2" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
+              <span className="ml-2">%</span>
             </label>
+            <span className="mt-1 ">=</span>
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100' : ''}`}>
-              <label className="block text-sm flex-1">Initial $</label>
+              <label className="block text-sm flex-1">First Widthdraw</label>
               <div className="flex items-center mt-1">
                 <input
                   type="number"
@@ -227,7 +229,7 @@ const SPTab: React.FC<SPTabProps> = ({
           </div>
           <label className="block text-sm">Assumed Inflation Rate
             <div className="flex items-center mt-1">
-              <input type="number" className="shrink border rounded-xl p-2" value={Math.round(inflationRate * 100) / 1} step={0.5} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <input type="number" className="w-1/3 border rounded-xl p-2" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
               <span className="ml-2">%</span>
             </div>
           </label>

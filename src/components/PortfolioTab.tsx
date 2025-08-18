@@ -374,7 +374,17 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       </section>
 
       <section className="bg-white rounded-2xl shadow p-4">
-        <h2 className="font-semibold mb-2">Portfolio Trajectory Bands</h2>
+        <div className="flex items-center justify-between">
+            <h2 className="font-semibold mb-2">Portfolio Trajectory Bands</h2>
+            <button
+              className="text-lg hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+          </div>
         {stats && (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -396,7 +406,17 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       </section>
 
       <section className="bg-white rounded-2xl shadow p-4">
-        <h2 className="font-semibold mb-2">Sample Run Asset Allocation</h2>
+        <div className="flex items-center justify-between">
+            <h2 className="font-semibold mb-2">Sample Run Asset Allocation</h2>
+            <button
+              className="text-lg hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+        </div>
         {sampleRun && (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -426,7 +446,17 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       </section>
 
       <section className="bg-white rounded-2xl shadow p-4">
-        <h2 className="font-semibold mb-2">Sample Run Trajectory</h2>
+        <div className="flex items-center justify-between">
+            <h2 className="font-semibold mb-2">Sample Run Trajectory</h2>
+            <button
+              className="text-lg hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+        </div>
         {sampleRun && (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">

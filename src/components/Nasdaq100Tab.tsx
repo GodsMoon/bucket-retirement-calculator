@@ -357,9 +357,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
                 <Tooltip
                   formatter={(value: number, name: string) => {
-                    if (name === "balance") return [currency.format(value), "Balance"];
-                    if (name === "withdrawal") return [currency.format(value), "Withdrawal"];
-                    return [value, name];
+                    return [`${currency.format(value)}`, name];
                   }}
                   itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
                 />

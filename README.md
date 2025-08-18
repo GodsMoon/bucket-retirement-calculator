@@ -14,6 +14,7 @@ The latest build is available at [bucket-retirement-calculator.vercel.app](https
 - **Monte Carlo modes** – run historical sequences, random start years, shuffled returns or bootstrap samples.
 - **Inflation controls** – toggle CPI adjustments and choose a custom inflation rate.
 - **Interactive charts** – visualize portfolio balances and success rates over the retirement horizon.
+- **Profiles** – save parameter sets into Default, Donation or Custom slots for quick recall across sessions.
 
 ## Getting Started
 

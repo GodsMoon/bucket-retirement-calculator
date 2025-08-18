@@ -7,6 +7,7 @@ import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
 import PortfolioTab from "./components/PortfolioTab";
 import DrawdownTab from "./components/DrawdownTab";
+import ProfileSelector, { type Profile } from "./components/ProfileSelector";
 
 export type DrawdownStrategy =
   | "cashFirst_spyThenQqq"
@@ -26,32 +27,90 @@ export default function App() {
   const round2 = (n: number) => Math.round(n * 100) / 100;
   const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
-  const [cash, setCash] = useState(100_000);
-  const [spy, setSpy] = useState(450_000);
-  const [qqq, setQqq] = useState(450_000);
-  const [bonds, setBonds] = useState(0);
-  const portfolioStartBalance = useMemo(() => cash + spy + qqq + bonds, [cash, spy, qqq, bonds]);
-  const [startBalance, setStartBalance] = useState(1_000_000);
-  const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>("cashFirst_spyThenQqq");
-  const [horizon, setHorizon] = useState(30);
-  const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
-  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(Math.round(startBalance * (4 / 100)));
-  const [isFirstWithdrawLocked, setIsInitialAmountLocked] = useState(false);
-  const [inflationAdjust, setInflationAdjust] = useState(true);
-  const [inflationRate, setInflationRate] = useState(0.02); // 2%
-  const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("actual-seq");
-  const [numRuns, setNumRuns] = useState(1000);
-  const [seed, setSeed] = useState<number | "">("");
-  const [refreshCounter, setRefreshCounter] = useState(0);
+
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
     const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
     return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
-  const [startYear, setStartYear] = useState<number>(years[0]);
+
+  const defaultParams = {
+    startBalance: 1_000_000,
+    cash: 100_000,
+    spy: 450_000,
+    qqq: 450_000,
+    bonds: 0,
+    drawdownStrategy: "cashFirst_spyThenQqq" as DrawdownStrategy,
+    horizon: 30,
+    withdrawRate: 4,
+    initialWithdrawalAmount: Math.round(1_000_000 * (4 / 100)),
+    isFirstWithdrawLocked: false,
+    inflationAdjust: true,
+    inflationRate: 0.02,
+    mode: "actual-seq" as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap",
+    numRuns: 1000,
+    seed: "" as number | "",
+    startYear: years[0],
+  };
+
+  const loadProfileData = (name: Profile) => {
+    const stored = localStorage.getItem(`profile_${name}`);
+    if (stored) {
+      try {
+        return { ...defaultParams, ...JSON.parse(stored) };
+      } catch {
+        // ignore parse errors
+      }
+    }
+    return defaultParams;
+  };
+
+  const [profile, setProfile] = useState<Profile>(() => (localStorage.getItem("activeProfile") as Profile) || "Default");
+  const initialProfile = loadProfileData(profile);
+
+  const [cash, setCash] = useState(initialProfile.cash);
+  const [spy, setSpy] = useState(initialProfile.spy);
+  const [qqq, setQqq] = useState(initialProfile.qqq);
+  const [bonds, setBonds] = useState(initialProfile.bonds);
+  const portfolioStartBalance = useMemo(() => cash + spy + qqq + bonds, [cash, spy, qqq, bonds]);
+  const [startBalance, setStartBalance] = useState(initialProfile.startBalance);
+  const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>(initialProfile.drawdownStrategy);
+  const [horizon, setHorizon] = useState(initialProfile.horizon);
+  const [withdrawRate, setWithdrawRate] = useState(initialProfile.withdrawRate); // % of initial
+  const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(initialProfile.initialWithdrawalAmount);
+  const [isFirstWithdrawLocked, setIsInitialAmountLocked] = useState(initialProfile.isFirstWithdrawLocked);
+  const [inflationAdjust, setInflationAdjust] = useState(initialProfile.inflationAdjust);
+  const [inflationRate, setInflationRate] = useState(initialProfile.inflationRate); // 2%
+  const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">(initialProfile.mode);
+  const [numRuns, setNumRuns] = useState(initialProfile.numRuns);
+  const [seed, setSeed] = useState<number | "">(initialProfile.seed);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const [startYear, setStartYear] = useState<number>(initialProfile.startYear);
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
+
+  const handleProfileChange = (p: Profile) => {
+    const data = loadProfileData(p);
+    setProfile(p);
+    setCash(data.cash);
+    setSpy(data.spy);
+    setQqq(data.qqq);
+    setBonds(data.bonds);
+    setStartBalance(data.startBalance);
+    setDrawdownStrategy(data.drawdownStrategy);
+    setHorizon(data.horizon);
+    setWithdrawRate(data.withdrawRate);
+    setInitialWithdrawalAmount(data.initialWithdrawalAmount);
+    setIsInitialAmountLocked(data.isFirstWithdrawLocked);
+    setInflationAdjust(data.inflationAdjust);
+    setInflationRate(data.inflationRate);
+    setMode(data.mode);
+    setNumRuns(data.numRuns);
+    setSeed(data.seed);
+    setStartYear(data.startYear);
+    localStorage.setItem("activeProfile", p);
+  };
 
   const handleParamChange = (param: string, value: string | number | boolean) => {
     switch (param) {
@@ -82,6 +141,29 @@ export default function App() {
       case 'startYear': setStartYear(parseFloat(value as string)); break;
     }
   };
+
+  useEffect(() => {
+    const data = {
+      startBalance,
+      cash,
+      spy,
+      qqq,
+      bonds,
+      drawdownStrategy,
+      horizon,
+      withdrawRate,
+      initialWithdrawalAmount,
+      isFirstWithdrawLocked,
+      inflationAdjust,
+      inflationRate,
+      mode,
+      numRuns,
+      seed,
+      startYear,
+    };
+    localStorage.setItem(`profile_${profile}`, JSON.stringify(data));
+    localStorage.setItem("activeProfile", profile);
+  }, [profile, startBalance, cash, spy, qqq, bonds, drawdownStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
 
   const activeStartBalance = (activeTab === 'sp500' || activeTab === 'nasdaq100')
     ? startBalance
@@ -121,6 +203,11 @@ export default function App() {
               {darkMode ? "Light Mode" : "Dark Mode"}
             </button>
           </header>
+
+        <ProfileSelector
+          activeProfile={profile}
+          onProfileChange={handleProfileChange}
+        />
 
         <TabNavigation
           activeTab={activeTab}

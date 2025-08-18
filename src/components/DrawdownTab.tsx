@@ -610,11 +610,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <label className="block">Guardrail Lower (%)
                   <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.guardrailLower * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailLower: parseFloat(e.target.value) / 100 })} />
                 </label>
-                <label className="block">Cut Percentage (%)
-                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
-                </label>
                 <label className="block">Raise Percentage (%)
                   <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.raisePercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, raisePercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Cut Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
                 </label>
               </div>
             </div>

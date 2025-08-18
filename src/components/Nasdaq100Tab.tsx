@@ -225,8 +225,11 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
             <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
             <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
           </div>
-          <label className="block text-sm">Inflation rate (if adjusted)
-            <input type="number" className="mt-1 w-full border rounded-xl p-2" value={inflationRate} step={0.005} onChange={e => onParamChange('inflationRate', Number(e.target.value))} />
+          <label className="block text-sm">Assumed Inflation Rate
+            <div className="flex items-center mt-1">
+              <input type="number" className="w-full border rounded-xl p-2" value={inflationRate * 100} step={0.5} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <span className="ml-2">%</span>
+            </div>
           </label>
         </div>
 

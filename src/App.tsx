@@ -33,27 +33,31 @@ export default function App() {
 
   const handleParamChange = (param: string, value: string | number | boolean) => {
     switch (param) {
-      case 'cash': setCash(value as number); break;
-      case 'spy': setSpy(value as number); break;
-      case 'qqq': setQqq(value as number); break;
+      case 'cash': setCash(parseFloat(value as string)); break;
+      case 'spy': setSpy(parseFloat(value as string)); break;
+      case 'qqq': setQqq(parseFloat(value as string)); break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
-      case 'horizon': setHorizon(value as number); break;
-      case 'withdrawRate':
-        setWithdrawRate(value);
+      case 'horizon': setHorizon(parseFloat(value as string)); break;
+      case 'withdrawRate': {
+        const numValue = parseFloat(value as string);
+        setWithdrawRate(numValue);
         // Update initial withdrawal amount based on new rate
-        setInitialWithdrawalAmount(startBalance * (value / 100));
+        setInitialWithdrawalAmount(startBalance * (numValue / 100));
         break;
-      case 'initialWithdrawalAmount':
-        setInitialWithdrawalAmount(value);
+      }
+      case 'initialWithdrawalAmount': {
+        const numValue = parseFloat(value as string);
+        setInitialWithdrawalAmount(numValue);
         // Update withdraw rate based on new amount
-        setWithdrawRate((value / startBalance) * 100);
+        setWithdrawRate((numValue / startBalance) * 100);
         break;
-      case 'inflationAdjust': setInflationAdjust(value); break;
-      case 'inflationRate': setInflationRate(value); break;
-      case 'mode': setMode(value); break;
-      case 'numRuns': setNumRuns(value); break;
-      case 'seed': setSeed(value); break;
-      case 'startYear': setStartYear(value); break;
+      }
+      case 'inflationAdjust': setInflationAdjust(value as boolean); break;
+      case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
+      case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
+      case 'numRuns': setNumRuns(parseFloat(value as string)); break;
+      case 'seed': setSeed(value === "" ? "" : parseFloat(value as string)); break;
+      case 'startYear': setStartYear(parseFloat(value as string)); break;
     }
   };
 

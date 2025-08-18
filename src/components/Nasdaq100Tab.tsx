@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
-import { pctToMult, bootstrapSample, shuffle, percentile, RunResult } from "../lib/simulation";
+import { pctToMult, bootstrapSample, shuffle, percentile } from "../lib/simulation";
+import type { RunResult } from "../lib/simulation";
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon

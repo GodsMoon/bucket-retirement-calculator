@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
-import { DrawdownStrategy } from "../App";
+import type { DrawdownStrategy } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile } from "../lib/simulation";
 
@@ -409,7 +409,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, name: string, props: { payload: { cash: number, spy: number, qqq: number } }) => {
+                  formatter={(value: number, _: string, props: any) => {
                     const total = props.payload.cash + props.payload.spy + props.payload.qqq;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;

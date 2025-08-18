@@ -10,6 +10,7 @@ import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats
 type PortfolioRunResult = {
   balances: { total: number; cash: number; spy: number; qqq: number }[];
   failedYear: number | null;
+  withdrawals: number[];
 };
 
 function simulatePortfolioPath(
@@ -25,6 +26,7 @@ function simulatePortfolioPath(
   drawdownStrategy: DrawdownStrategy
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0 }));
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -36,6 +38,7 @@ function simulatePortfolioPath(
 
   for (let y = 0; y < horizon; y++) {
     let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
+    withdrawals[y] = withdrawalAmount;
 
     // Drawdown from cash first
     const fromCash = Math.min(withdrawalAmount, cash);
@@ -137,7 +140,7 @@ function simulatePortfolioPath(
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq };
   }
 
-  return { balances, failedYear };
+  return { balances, failedYear, withdrawals };
 }
 
 
@@ -237,6 +240,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     const drawdownStats = calculateDrawdownStats(sims.map(s => ({
       ...s,
       balances: s.balances.map(b => b.total),
+      withdrawals: s.withdrawals,
     })));
 
     const bands: { year: number; p10: number; p25: number; p50: number; p75: number; p90: number; }[] = [];
@@ -251,7 +255,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         p90: percentile(balT, 0.90),
       });
     }
-    return { successRate, endingBalances, bands, ...drawdownStats };
+    const medianFifthYearWithdrawal = horizon >= 5 ? percentile(sims.map(s => s.withdrawals[4]), 0.5) : 0;
+    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -368,6 +373,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           {stats && (
             <div className="space-y-2 text-sm">
               <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
+              {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
               <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
               <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
               <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>

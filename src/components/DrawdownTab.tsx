@@ -371,6 +371,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     const drawdownStats = calculateDrawdownStats(sims.map(s => ({
       ...s,
       balances: s.balances.map(b => b.total),
+      withdrawals: s.withdrawals,
     })));
 
     const bands: { year: number; p10: number; p25: number; p50: number; p75: number; p90: number; }[] = [];
@@ -385,7 +386,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         p90: percentile(balT, 0.90),
       });
     }
-    return { successRate, endingBalances, bands, ...drawdownStats };
+    const medianFifthYearWithdrawal = horizon >= 5 ? percentile(sims.map(s => s.withdrawals[4]), 0.5) : 0;
+    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -543,6 +545,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           {stats && (
             <div className="space-y-2 text-sm">
               <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
+              {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
               <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
               <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
               <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>

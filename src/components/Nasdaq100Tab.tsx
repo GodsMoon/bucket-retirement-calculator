@@ -343,12 +343,29 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         {sampleRun && (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sampleRun.balances.map((b, i) => ({ year: i, balance: b }))} margin={{ left: 32, right: 8, top: 8, bottom: 8 }}>
+              <LineChart
+                data={sampleRun.balances.map((b, i) => ({
+                  year: i,
+                  balance: b,
+                  withdrawal: sampleRun.withdrawals[i],
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
-                <YAxis tickFormatter={(v) => currency.format(v as number)} />
-                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} />
-                <Line type="monotone" dataKey="balance" name="Balance" dot={false} strokeWidth={2} />
+                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    if (name === "balance") return [currency.format(value), "Balance"];
+                    if (name === "withdrawal") return [currency.format(value), "Withdrawal"];
+                    return [value, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
               </LineChart>
             </ResponsiveContainer>
           </div>

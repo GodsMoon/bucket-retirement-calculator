@@ -601,7 +601,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             </div>
           )}
 
-          <label className="block text-sm">Horizon (years)
+          <label className="block text-sm pt-2 border-t">Horizon (years)
             <input type="number" className="mt-1 w-full border rounded-xl p-2" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
           </label>
           <div className="space-y-2 text-sm">

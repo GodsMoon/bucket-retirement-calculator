@@ -4,6 +4,7 @@ import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
 import PortfolioTab from "./components/PortfolioTab";
+import DrawdownTab from "./components/DrawdownTab";
 
 export type DrawdownStrategy =
   | "cashFirst_spyThenQqq"
@@ -12,9 +13,14 @@ export type DrawdownStrategy =
   | "cashFirst_bestPerformer"
   | "cashFirst_worstPerformer";
 
+export type DrawdownStrategies =
+  | "guytonKlinger"
+  | "floorAndCeiling"
+  | "capeBased";
+
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio">("sp500");
+  const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
   const [cash, setCash] = useState(100_000);
   const [spy, setSpy] = useState(450_000);
   const [qqq, setQqq] = useState(450_000);
@@ -125,6 +131,27 @@ export default function App() {
             spy={spy}
             qqq={qqq}
             drawdownStrategy={drawdownStrategy}
+            horizon={horizon}
+            withdrawRate={withdrawRate}
+            initialWithdrawalAmount={initialWithdrawalAmount}
+            inflationAdjust={inflationAdjust}
+            inflationRate={inflationRate}
+            mode={mode}
+            numRuns={numRuns}
+            seed={seed}
+            startYear={startYear}
+            onRefresh={handleRefresh}
+            onParamChange={handleParamChange}
+            refreshCounter={refreshCounter}
+          />
+        )}
+
+        {activeTab === 'drawdown' && (
+          <DrawdownTab
+            startBalance={startBalance}
+            cash={cash}
+            spy={spy}
+            qqq={qqq}
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}

@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabNavigationProps {
-  activeTab: "sp500" | "nasdaq100" | "portfolio";
-  onTabChange: (tab: "sp500" | "nasdaq100" | "portfolio") => void;
+  activeTab: "sp500" | "nasdaq100" | "portfolio" | "drawdown";
+  onTabChange: (tab: "sp500" | "nasdaq100" | "portfolio" | "drawdown") => void;
 }
 
 const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange }) => {
@@ -25,6 +25,12 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         onClick={() => onTabChange('portfolio')}
       >
         Portfolio
+      </button>
+      <button
+        className={`px-4 py-2 font-medium ${activeTab === 'drawdown' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+        onClick={() => onTabChange('drawdown')}
+      >
+        Drawdown Strategies
       </button>
     </div>
   );

@@ -19,7 +19,8 @@ export type DrawdownStrategies =
   | "guytonKlinger"
   | "floorAndCeiling"
   | "capeBased"
-  | "fixedPercentage";
+  | "fixedPercentage"
+  | "noWithdrawalIfBelowStart";
 
 
 export default function App() {

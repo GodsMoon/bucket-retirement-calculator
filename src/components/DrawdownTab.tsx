@@ -203,6 +203,79 @@ function simulateFloorAndCeiling(
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
 }
 
+function simulateNoWithdrawalIfBelowStart(
+  spyReturns: number[],
+  qqqReturns: number[],
+  bondReturns: number[],
+  initialCash: number,
+  initialSpy: number,
+  initialQqq: number,
+  initialBonds: number,
+  horizon: number,
+  withdrawalRate: number,
+): PortfolioRunResult {
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const withdrawals = new Array(horizon).fill(0);
+  let cash = initialCash;
+  let spy = initialSpy;
+  let qqq = initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  let failedYear: number | null = null;
+
+  for (let y = 0; y < horizon; y++) {
+    let withdrawalAmount = 0;
+    if (balances[y].total >= startBalance) {
+      withdrawalAmount = balances[y].total * withdrawalRate;
+    }
+
+    withdrawals[y] = withdrawalAmount;
+
+    // Drawdown from cash first
+    const fromCash = Math.min(withdrawalAmount, cash);
+    cash -= fromCash;
+    let remainingWithdrawal = withdrawalAmount - fromCash;
+
+    if (remainingWithdrawal > 0) {
+      const fromSpy = Math.min(remainingWithdrawal, spy);
+      spy -= fromSpy;
+      remainingWithdrawal -= fromSpy;
+
+      if (remainingWithdrawal > 0) {
+        const fromQqq = Math.min(remainingWithdrawal, qqq);
+        qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
+      }
+    }
+
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    if (totalBeforeGrowth <= 0 && failedYear === null) {
+      failedYear = y + 1;
+      for (let i = y + 1; i <= horizon; i++) {
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+      }
+      break;
+    }
+
+    // Apply market returns
+    spy *= spyReturns[y];
+    qqq *= qqqReturns[y];
+    bonds *= bondReturns[y];
+
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+  }
+
+  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
+}
+
 function simulateFixedPercentage(
   spyReturns: number[],
   qqqReturns: number[],
@@ -453,6 +526,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
       } else if (strategy === "fixedPercentage") {
         runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
+      } else if (strategy === "noWithdrawalIfBelowStart") {
+        runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
       }
     } else {
       // Monte Carlo modes
@@ -477,6 +552,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
         } else if (strategy === "fixedPercentage") {
           runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
+        } else if (strategy === "noWithdrawalIfBelowStart") {
+          runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
         }
       }
     }
@@ -597,6 +674,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
               <option value="fixedPercentage">Fixed % Drawdown</option>
+              <option value="noWithdrawalIfBelowStart">No Withdrawal if Below Starting</option>
             </select>
           </label>
 
@@ -618,7 +696,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             </div>
           )}
 
-          {strategy === 'fixedPercentage' && (
+          {(strategy === 'fixedPercentage' || strategy === 'noWithdrawalIfBelowStart') && (
             <div className="space-y-2 text-sm border-t pt-2">
               <h3 className="font-semibold">Fixed % Parameters</h3>
               <label className="block">Withdrawal Rate (%)
@@ -875,6 +953,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <div>
               <h3 className="font-semibold">Fixed % Drawdown</h3>
               <p>This strategy withdraws a fixed percentage of the remaining portfolio balance each year. For example, if the rate is 4% and the portfolio is worth $1M, you'd withdraw $40,000. If the portfolio grows to $1.2M next year, you'd withdraw $48,000.</p>
+            </div>
+          )}
+          {strategy === 'noWithdrawalIfBelowStart' && (
+            <div>
+              <h3 className="font-semibold">No Withdrawal if Below Starting</h3>
+              <p>This strategy is a variation of the Fixed % Drawdown. It withdraws a fixed percentage of the remaining portfolio balance each year, but only if the current portfolio balance is not below the initial starting balance. If it is, no withdrawal is made for that year.</p>
             </div>
           )}
         </div>

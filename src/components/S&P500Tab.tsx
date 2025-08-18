@@ -227,7 +227,7 @@ const SPTab: React.FC<SPTabProps> = ({
           </div>
           <label className="block text-sm">Assumed Inflation Rate
             <div className="flex items-center mt-1">
-              <input type="number" className="shrink border rounded-xl p-2" value={inflationRate * 100} step={0.5} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <input type="number" className="shrink border rounded-xl p-2" value={Math.round(inflationRate * 100) / 1} step={0.5} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
               <span className="ml-2">%</span>
             </div>
           </label>

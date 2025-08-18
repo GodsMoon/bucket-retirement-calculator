@@ -576,10 +576,10 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <div className="space-y-2 text-sm border-t pt-2">
               <h3 className="font-semibold">Floor and Ceiling Parameters</h3>
               <label className="block">Floor (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={floorAndCeilingParams.floor * 100} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, floor: parseFloat(e.target.value) / 100})} />
+                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={floorAndCeilingParams.floor * 100} step={1} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, floor: parseFloat(e.target.value) / 100})} />
               </label>
               <label className="block">Ceiling (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={floorAndCeilingParams.ceiling * 100} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, ceiling: parseFloat(e.target.value) / 100})} />
+                <input type="number" className="mt-1 w-full border rounded-xl p-2" value={floorAndCeilingParams.ceiling * 100} step={1} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, ceiling: parseFloat(e.target.value) / 100})} />
               </label>
             </div>
           )}

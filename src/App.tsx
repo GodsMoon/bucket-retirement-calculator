@@ -8,6 +8,7 @@ import Nasdaq100Tab from "./components/Nasdaq100Tab";
 import PortfolioTab from "./components/PortfolioTab";
 import DrawdownTab from "./components/DrawdownTab";
 import ProfileSelector, { type Profile } from "./components/ProfileSelector";
+import ThemeToggle from "./components/ThemeToggle";
 
 export type DrawdownStrategy =
   | "cashFirst_spyThenQqq"
@@ -197,12 +198,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto space-y-6">
           <header className="flex items-center justify-between">
             <h1 className="text-2xl md:text-3xl font-bold">4% Rule Tester — Monte Carlo</h1>
-            <button
-              className="px-3 py-1 rounded bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100"
-              onClick={toggleDarkMode}
-            >
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </button>
+            <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           </header>
 
         <ProfileSelector

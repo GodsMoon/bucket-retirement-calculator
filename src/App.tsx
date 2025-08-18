@@ -25,11 +25,13 @@ export default function App() {
   const [cash, setCash] = useState(100_000);
   const [spy, setSpy] = useState(450_000);
   const [qqq, setQqq] = useState(450_000);
-  const startBalance = useMemo(() => cash + spy + qqq, [cash, spy, qqq]);
+  const portfolioStartBalance = useMemo(() => cash + spy + qqq, [cash, spy, qqq]);
+  const [startBalance, setStartBalance] = useState(1_000_000);
   const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>("cashFirst_spyThenQqq");
   const [horizon, setHorizon] = useState(30);
   const [withdrawRate, setWithdrawRate] = useState(4); // % of initial
   const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(Math.round(startBalance * (4 / 100)));
+  const [isInitialAmountLocked, setIsInitialAmountLocked] = useState(false);
   const [inflationAdjust, setInflationAdjust] = useState(true);
   const [inflationRate, setInflationRate] = useState(0.02); // 2%
   const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">("actual-seq");
@@ -40,6 +42,7 @@ export default function App() {
 
   const handleParamChange = (param: string, value: string | number | boolean) => {
     switch (param) {
+      case 'startBalance': setStartBalance(parseFloat(value as string)); break;
       case 'cash': setCash(parseFloat(value as string)); break;
       case 'spy': setSpy(parseFloat(value as string)); break;
       case 'qqq': setQqq(parseFloat(value as string)); break;
@@ -68,10 +71,26 @@ export default function App() {
     }
   };
 
-  // Effect to update initialWithdrawalAmount if startBalance changes from outside (e.g., initial load)
+  const activeStartBalance = (activeTab === 'sp500' || activeTab === 'nasdaq100')
+    ? startBalance
+    : portfolioStartBalance;
+
+  // Effect to update EITHER initialWithdrawalAmount OR withdrawRate if startBalance changes.
   useEffect(() => {
-    setInitialWithdrawalAmount(startBalance * (withdrawRate / 100));
-  }, [startBalance, withdrawRate]);
+    if (isInitialAmountLocked) {
+      // If locked, initial withdrawal amount is king. Recalculate rate.
+      const newRate = (initialWithdrawalAmount / activeStartBalance) * 100;
+      if (withdrawRate !== newRate) {
+        setWithdrawRate(newRate);
+      }
+    } else {
+      // If not locked, withdraw rate is king. Recalculate initial amount.
+      const newAmount = activeStartBalance * (withdrawRate / 100);
+      if (initialWithdrawalAmount !== newAmount) {
+        setInitialWithdrawalAmount(newAmount);
+      }
+    }
+  }, [activeStartBalance, isInitialAmountLocked, initialWithdrawalAmount, withdrawRate, setWithdrawRate, setInitialWithdrawalAmount]);
 
   const handleRefresh = () => {
     setRefreshCounter(prev => prev + 1);
@@ -95,6 +114,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -103,6 +123,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}
@@ -113,6 +134,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -121,13 +143,14 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}
 
         {activeTab === 'portfolio' && (
           <PortfolioTab
-            startBalance={startBalance}
+            startBalance={portfolioStartBalance}
             cash={cash}
             spy={spy}
             qqq={qqq}
@@ -135,6 +158,7 @@ export default function App() {
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -143,19 +167,21 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}
 
         {activeTab === 'drawdown' && (
           <DrawdownTab
-            startBalance={startBalance}
+            startBalance={portfolioStartBalance}
             cash={cash}
             spy={spy}
             qqq={qqq}
             horizon={horizon}
             withdrawRate={withdrawRate}
             initialWithdrawalAmount={initialWithdrawalAmount}
+            isInitialAmountLocked={isInitialAmountLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
             mode={mode}
@@ -164,6 +190,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
         )}

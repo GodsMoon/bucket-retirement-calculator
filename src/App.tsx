@@ -118,13 +118,68 @@ export default function App() {
     localStorage.setItem("activeProfile", p);
   };
 
-  const handleParamChange = (param: string, value: string | number | boolean) => {
+  const handleAllocationInputChange = (param: 'cash' | 'spy' | 'qqq' | 'bonds', newValue: number) => {
+    const total = portfolioStartBalance;
+    const assets = { cash, spy, qqq, bonds };
+    const oldValue = assets[param];
+    const delta = newValue - oldValue;
+
+    if (newValue < 0) return;
+
+    const others = (Object.keys(assets) as Array<keyof typeof assets>).filter(p => p !== param);
+    const totalOfOthers = total - oldValue;
+
+    if (totalOfOthers <= 0) {
+      // Not enough in other assets to rebalance, so just update the single value
+      handleParamChange(param, newValue);
+      return;
+    }
+
+    const newValues = { ...assets };
+    newValues[param] = newValue;
+
+    let remainingDelta = delta;
+    for(const otherParam of others) {
+      const otherValue = assets[otherParam];
+      const proportion = otherValue / totalOfOthers;
+      const change = remainingDelta * proportion;
+      newValues[otherParam] -= change;
+    }
+
+    // Adjust for floating point inaccuracies to ensure the total remains constant
+    const newTotal = Object.values(newValues).reduce((sum, v) => sum + v, 0);
+    const roundingError = total - newTotal;
+    if (roundingError !== 0 && others.length > 0) {
+      const lastOther = others.find(p => newValues[p] - roundingError >= 0) || others[0];
+      newValues[lastOther] += roundingError;
+    }
+
+    // Final check for any negative values after rebalancing
+    if (Object.values(newValues).some(v => v < 0)) {
+        // Rebalancing resulted in a negative value, which is not allowed.
+        // In a real-world scenario, you might want to handle this more gracefully.
+        // For now, we'll just prevent the change.
+        return;
+    }
+
+    handleParamChange('allocation', newValues);
+  };
+
+  const handleParamChange = (param: string, value: any) => {
     switch (param) {
       case 'startBalance': setStartBalance(parseFloat(value as string)); break;
       case 'cash': setCash(parseFloat(value as string)); break;
       case 'spy': setSpy(parseFloat(value as string)); break;
       case 'qqq': setQqq(parseFloat(value as string)); break;
       case 'bonds': setBonds(parseFloat(value as string)); break;
+      case 'allocation':
+        if (typeof value === 'object' && value !== null) {
+          setCash(value.cash);
+          setSpy(value.spy);
+          setQqq(value.qqq);
+          setBonds(value.bonds);
+        }
+        break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
       case 'drawdownWithdrawalStrategy': setDrawdownWithdrawalStrategy(value as DrawdownStrategies); break;
       case 'horizon': setHorizon(parseFloat(value as string)); break;
@@ -232,6 +287,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -252,6 +308,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />

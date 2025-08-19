@@ -281,7 +281,7 @@ function simulateFourPercentRule(
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
 }
 
-function simulateNoWithdrawalIfBelowStart(
+function simulatePrincipalProtectionRule(
   spyReturns: number[],
   qqqReturns: number[],
   bondReturns: number[],
@@ -311,10 +311,9 @@ function simulateNoWithdrawalIfBelowStart(
     let currentWithdrawal = 0;
     if (balances[y].total >= startBalance) {
       currentWithdrawal = withdrawalAmount;
-    }
-
-    if (inflationAdjust) {
-      withdrawalAmount *= (1 + inflationRate);
+      if (inflationAdjust) {
+        withdrawalAmount *= (1 + inflationRate);
+      }
     }
 
     withdrawals[y] = currentWithdrawal;
@@ -617,8 +616,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
       } else if (strategy === "fixedPercentage") {
         runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
-      } else if (strategy === "noWithdrawalIfBelowStart") {
-        runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+      } else if (strategy === "principalProtectionRule") {
+        runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       } else if (strategy === "fourPercentRule") {
         runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       }
@@ -646,8 +645,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
         } else if (strategy === "fixedPercentage") {
           runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
-        } else if (strategy === "noWithdrawalIfBelowStart") {
-          runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        } else if (strategy === "principalProtectionRule") {
+          runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         } else if (strategy === "fourPercentRule") {
           runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         }
@@ -769,7 +768,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
               <option value="fixedPercentage">Fixed % Drawdown</option>
-              <option value="noWithdrawalIfBelowStart">No Withdrawal if Below Starting</option>
+              <option value="principalProtectionRule">Principal Protection Rule</option>
             </select>
           </label>
 
@@ -802,7 +801,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             </div>
           )}
 
-          {strategy === 'noWithdrawalIfBelowStart' && (
+          {strategy === 'principalProtectionRule' && (
             <div className="text-sm border-t pt-2">
               <h3 className="font-semibold mb-2">Parameters</h3>
                 <p className="text-xs text-slate-600">This strategy uses the global initial withdrawal amount and inflation settings.</p>
@@ -1067,10 +1066,10 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <p>This strategy withdraws a fixed percentage of the remaining portfolio balance each year. For example, if the rate is 4% and the portfolio is worth $1M, you'd withdraw $40,000. If the portfolio grows to $1.2M next year, you'd withdraw $48,000.</p>
             </div>
           )}
-          {strategy === 'noWithdrawalIfBelowStart' && (
+          {strategy === 'principalProtectionRule' && (
             <div>
-              <h3 className="font-semibold">No Withdrawal if Below Starting</h3>
-              <p>This strategy only withdraws the initial withdrawal amount (adjusted for inflation if checked) if the current balance is larger than the starting balance. Otherwise, nothing is withdrawn from the account. This would be used for Donations if funds allow.</p>
+              <h3 className="font-semibold">Principal Protection Rule</h3>
+              <p>A 4% Rule strategy, except that you don't withdraw at all if it's below starting value. This would be used for Donations if funds allow.</p>
             </div>
           )}
           {strategy === 'fourPercentRule' && (

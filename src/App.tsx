@@ -22,7 +22,7 @@ export type DrawdownStrategies =
   | "floorAndCeiling"
   | "capeBased"
   | "fixedPercentage"
-  | "noWithdrawalIfBelowStart"
+  | "principalProtectionRule"
   | "fourPercentRule";
 
 

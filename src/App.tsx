@@ -45,6 +45,7 @@ export default function App() {
     qqq: 450_000,
     bonds: 0,
     drawdownStrategy: "cashFirst_spyThenQqq" as DrawdownStrategy,
+    drawdownWithdrawalStrategy: "fourPercentRule" as DrawdownStrategies,
     horizon: 30,
     withdrawRate: 4,
     initialWithdrawalAmount: Math.round(1_000_000 * (4 / 100)),
@@ -79,6 +80,7 @@ export default function App() {
   const portfolioStartBalance = useMemo(() => cash + spy + qqq + bonds, [cash, spy, qqq, bonds]);
   const [startBalance, setStartBalance] = useState(initialProfile.startBalance);
   const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>(initialProfile.drawdownStrategy);
+  const [drawdownWithdrawalStrategy, setDrawdownWithdrawalStrategy] = useState<DrawdownStrategies>(initialProfile.drawdownWithdrawalStrategy);
   const [horizon, setHorizon] = useState(initialProfile.horizon);
   const [withdrawRate, setWithdrawRate] = useState(initialProfile.withdrawRate); // % of initial
   const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(initialProfile.initialWithdrawalAmount);
@@ -102,6 +104,7 @@ export default function App() {
     setBonds(data.bonds);
     setStartBalance(data.startBalance);
     setDrawdownStrategy(data.drawdownStrategy);
+    setDrawdownWithdrawalStrategy(data.drawdownWithdrawalStrategy);
     setHorizon(data.horizon);
     setWithdrawRate(data.withdrawRate);
     setInitialWithdrawalAmount(data.initialWithdrawalAmount);
@@ -123,6 +126,7 @@ export default function App() {
       case 'qqq': setQqq(parseFloat(value as string)); break;
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
+      case 'drawdownWithdrawalStrategy': setDrawdownWithdrawalStrategy(value as DrawdownStrategies); break;
       case 'horizon': setHorizon(parseFloat(value as string)); break;
       case 'withdrawRate': {
         const newRate = round2(parseFloat(value as string));
@@ -153,6 +157,7 @@ export default function App() {
       qqq,
       bonds,
       drawdownStrategy,
+      drawdownWithdrawalStrategy,
       horizon,
       withdrawRate,
       initialWithdrawalAmount,
@@ -166,7 +171,7 @@ export default function App() {
     };
     localStorage.setItem(`profile_${profile}`, JSON.stringify(data));
     localStorage.setItem("activeProfile", profile);
-  }, [profile, startBalance, cash, spy, qqq, bonds, drawdownStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
+  }, [profile, startBalance, cash, spy, qqq, bonds, drawdownStrategy, drawdownWithdrawalStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
 
   const activeStartBalance = (activeTab === 'sp500' || activeTab === 'nasdaq100')
     ? startBalance
@@ -279,6 +284,7 @@ export default function App() {
 
         {activeTab === 'drawdown' && (
           <DrawdownTab
+            drawdownWithdrawalStrategy={drawdownWithdrawalStrategy}
             startBalance={portfolioStartBalance}
             cash={cash}
             spy={spy}

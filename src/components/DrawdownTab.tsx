@@ -508,6 +508,7 @@ function simulateCapeBased(
 
 
 interface DrawdownTabProps {
+  drawdownWithdrawalStrategy: DrawdownStrategies;
   startBalance: number;
   cash: number;
   spy: number;
@@ -532,6 +533,7 @@ interface DrawdownTabProps {
 import { CAPE_DATA } from "../data/cape";
 
 const DrawdownTab: React.FC<DrawdownTabProps> = ({
+  drawdownWithdrawalStrategy,
   startBalance,
   cash,
   spy,
@@ -552,7 +554,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   setIsInitialAmountLocked,
   refreshCounter,
 }) => {
-  const [strategy, setStrategy] = React.useState<DrawdownStrategies>("guytonKlinger");
+  const strategy = drawdownWithdrawalStrategy;
   const [guytonKlingerParams, setGuytonKlingerParams] = React.useState({
     guardrailUpper: 0.2,
     guardrailLower: 0.2,
@@ -757,7 +759,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <select
               className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
               value={strategy}
-              onChange={e => setStrategy(e.target.value as DrawdownStrategies)}
+              onChange={e => onParamChange('drawdownWithdrawalStrategy', e.target.value)}
             >
               <option value="guytonKlinger">Guyton-Klinger</option>
               <option value="floorAndCeiling">Floor and Ceiling</option>

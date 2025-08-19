@@ -765,12 +765,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               value={strategy}
               onChange={e => onParamChange('drawdownWithdrawalStrategy', e.target.value)}
             >
+              <option value="fourPercentRule">4% Rule</option>
               <option value="guytonKlinger">Guyton-Klinger</option>
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
               <option value="fixedPercentage">Fixed % Drawdown</option>
               <option value="noWithdrawalIfBelowStart">No Withdrawal if Below Starting</option>
-              <option value="fourPercentRule">4% Rule</option>
             </select>
           </label>
 

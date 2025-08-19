@@ -14,34 +14,31 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bon
   const total = cash + spy + qqq + bonds;
 
   const handleChange = (newValues: number | number[]) => {
-    if (Array.isArray(newValues)) {
-      const newCash = total * (newValues[0] / 100);
-      const newSpy = total * ((newValues[1] - newValues[0]) / 100);
-      const newQqq = total * ((newValues[2] - newValues[1]) / 100);
-      const newBonds = total * ((100 - newValues[2]) / 100);
+    if (Array.isArray(newValues) && newValues.length === 4) {
+      const cashPct = newValues[1];
+      const spyPct = newValues[2] - newValues[1];
+      const qqqPct = newValues[3] - newValues[2];
 
-      // To avoid rapid-fire state updates, we can pass all params at once.
-      // This assumes the parent component can handle an object of values.
       onParamChange('allocation', {
-        cash: newCash,
-        spy: newSpy,
-        qqq: newQqq,
-        bonds: newBonds,
+        cash: total * (cashPct / 100),
+        spy: total * (spyPct / 100),
+        qqq: total * (qqqPct / 100),
+        bonds: total * ((100 - newValues[3]) / 100),
       });
     }
   };
 
-  const cashPct = (cash / total) * 100;
-  const spyPct = (spy / total) * 100;
-  const qqqPct = (qqq / total) * 100;
+  const cashPct = total > 0 ? (cash / total) * 100 : 0;
+  const spyPct = total > 0 ? (spy / total) * 100 : 0;
+  const qqqPct = total > 0 ? (qqq / total) * 100 : 0;
+  const bondsPct = 100 - cashPct - spyPct - qqqPct;
 
   const sliderValues = [
+    0,
     cashPct,
     cashPct + spyPct,
     cashPct + spyPct + qqqPct,
   ];
-
-  const bondsPct = 100 - cashPct - spyPct - qqqPct;
 
   return (
     <div className="space-y-2">
@@ -51,12 +48,17 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bon
         max={100}
         value={sliderValues}
         onChange={handleChange}
-        trackStyle={[{ backgroundColor: '#8884d8' }, { backgroundColor: '#82ca9d' }, { backgroundColor: '#ffc658' }]}
+        trackStyle={[
+          { backgroundColor: '#8884d8' }, // Cash
+          { backgroundColor: '#82ca9d' }, // SPY
+          { backgroundColor: '#ffc658' }  // QQQ
+        ]}
         handleStyle={[
+            { display: 'none' }, // Handle at 0
             { backgroundColor: '#8884d8', border: '2px solid white', boxShadow: '0 0 0 2px #6f6af2' },
             { backgroundColor: '#82ca9d', border: '2px solid white', boxShadow: '0 0 0 2px #6ac189' },
             { backgroundColor: '#ffc658', border: '2px solid white', boxShadow: '0 0 0 2px #e5b24f' }]}
-        railStyle={{ backgroundColor: '#95a5a6' }}
+        railStyle={{ backgroundColor: '#95a5a6' }} // Bonds
       />
       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
         <div className="flex items-center space-x-1">

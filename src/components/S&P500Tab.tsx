@@ -79,79 +79,38 @@ const SPTab: React.FC<SPTabProps> = ({
   const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
 
-  // Build deterministic return sequence for the chosen horizon using ACTUAL order (most recent last)
-  const actualSequenceMultipliers = useMemo(() => {
-    const sorted = SP500_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
-    const yearsSorted = sorted.map(d => d.year);
-    const mults = sorted.map(d => pctToMult(d.returnPct));
-
-    const startIdx = yearsSorted.indexOf(startYear);
-    const out: number[] = [];
-    for (let i = 0; i < horizon; i++) {
-      out.push(mults[startIdx + i]); // safe because we clamp startYear
-    }
-    return out;
-  }, [horizon, startYear]);
-
-  // Build sequences that start at random years but proceed chronologically
-  const randomStartSequenceMultipliers = useMemo(() => {
-    const multipliersChrono = SP500_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year).map(d => pctToMult(d.returnPct));
-    const totalYears = multipliersChrono.length;
-
-    const sequences: number[][] = [];
-    const runsToGenerate = mode === "actual-seq-random-start" ? numRuns : 0;
-
-    for (let run = 0; run < runsToGenerate; run++) {
-      const startIdx = Math.floor(Math.random() * totalYears);
-      const seq: number[] = [];
-
-      for (let i = 0; i < horizon; i++) {
-        const idx = (startIdx + i) % totalYears;
-        seq.push(multipliersChrono[idx]);
-      }
-
-      sequences.push(seq);
-    }
-
-    return sequences;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [horizon, numRuns, mode, refreshCounter]);
-
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
     const runs: RunResult[] = [];
-    const multipliers = availableMultipliers;
+    const multipliers = availableMultipliers; // unsorted
+    const sortedReturns = SP500_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
+    const multipliersChrono = sortedReturns.map(d => pctToMult(d.returnPct));
+    const yearsSorted = sortedReturns.map(d => d.year);
 
-    if (mode === "actual-seq") {
-      const seq = actualSequenceMultipliers.slice(0, horizon);
-      runs.push(
-        simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust)
-      );
-    } else if (mode === "actual-seq-random-start") {
-      for (const seq of randomStartSequenceMultipliers) {
-        runs.push(
-          simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust)
-        );
+    const numSimRuns = mode === 'actual-seq' ? 1 : numRuns;
+
+    for (let r = 0; r < numSimRuns; r++) {
+      let seq: number[] = [];
+      if (mode === 'actual-seq') {
+        let startIdx = yearsSorted.indexOf(startYear);
+        if (startIdx === -1) startIdx = 0;
+        seq = multipliersChrono.slice(startIdx, startIdx + horizon);
+      } else if (mode === 'actual-seq-random-start') {
+        const startIdx = Math.floor(Math.random() * multipliersChrono.length);
+        seq = Array.from({ length: horizon }, (_, i) => multipliersChrono[(startIdx + i) % multipliersChrono.length]);
+      } else if (mode === "random-shuffle") {
+        const shuffled = shuffle(multipliers);
+        seq = Array.from({ length: horizon }, (_, i) => shuffled[i % shuffled.length]);
+      } else if (mode === "bootstrap") {
+        seq = bootstrapSample(multipliers, horizon);
       }
-    } else if (mode === "random-shuffle") {
-      for (let r = 0; r < numRuns; r++) {
-        const seq = shuffle(multipliers).slice(0, horizon);
-        runs.push(
-          simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust)
-        );
-      }
-    } else if (mode === "bootstrap") {
-      for (let r = 0; r < numRuns; r++) {
-        const seq = bootstrapSample(multipliers, horizon);
-        runs.push(
-          simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust)
-        );
+      if (seq.length > 0) {
+        runs.push(simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust));
       }
     }
-
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, actualSequenceMultipliers, randomStartSequenceMultipliers, refreshCounter]);
+  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, startYear, refreshCounter]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;

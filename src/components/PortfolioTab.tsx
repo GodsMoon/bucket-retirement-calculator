@@ -229,7 +229,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     if (mode === "actual-seq") {
       let startIdx = years.indexOf(startYear);
       if (startIdx === -1) startIdx = 0;
-      const yearSample = Array.from({ length: horizon }, (_, i) => years[(startIdx + i) % years.length]);
+      const yearSample = years.slice(startIdx, startIdx + horizon);
       const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
       const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
@@ -389,8 +389,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 type="number"
                 className="ml-2 w-24 border rounded-xl p-1 disabled:opacity-50 bg-white dark:bg-slate-700 dark:border-slate-600"
                 value={startYear}
+                min={Math.min(...years)}
+                max={Math.max(...years) - horizon + 1}
                 disabled={mode !== 'actual-seq'}
-                onChange={(e) => onParamChange('startYear', Number(e.target.value))}
+                onChange={(e) => {
+                  const y = Number(e.target.value);
+                  const minYear = Math.min(...years);
+                  const maxYear = Math.max(...years);
+                  const clamped = Math.min(Math.max(y, minYear), maxYear - horizon + 1);
+                  onParamChange('startYear', clamped);
+                }}
               />
             </label>
             <label className="flex items-center gap-2">

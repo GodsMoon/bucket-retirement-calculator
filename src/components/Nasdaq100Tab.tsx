@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Ar
 import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
+import CurrencyInput from "./CurrencyInput";
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon
@@ -151,27 +152,26 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
           <h2 className="font-semibold">Inputs</h2>
           <label className="block text-sm">Starting balance
-            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={startBalance} step={10000} onChange={e => onParamChange('startBalance', Number(e.target.value))} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={startBalance} step={10000} onChange={v => onParamChange('startBalance', v)} />
           </label>
           <label className="block text-sm">Horizon (years)
             <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
           </label>
           <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
-          <div className="flex flex-col lg:flex-row lg:gap-x-4 gap-y-2">
-            <label className="block text-sm pt-2 flex-1">% of Starting Portfolio
+
+          <div className="flex gap-4">
+            <label className="block text-sm pt-2 flex-1">First Withdrawal (%)
               <input type="number" className="mt-1 w-3/4 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
               <span className="ml-2">%</span>
             </label>
-            <span className="mt-1 ">=</span>
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
-              <label className="block text-sm flex-1">First Withdrawal</label>
+              <label className="block text-sm flex-1">First Withdrawal ($)</label>
               <div className="flex items-center mt-1">
-                <input
-                  type="number"
+                <CurrencyInput
                   className={`w-full border rounded-xl p-2 transition-colors bg-white dark:bg-slate-700 dark:border-slate-600 ${isInitialAmountLocked ? 'text-green-800 dark:text-green-200 font-semibold' : ''}`}
                   value={Math.round(initialWithdrawalAmount)}
                   step={1000}
-                  onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
+                  onChange={v => onParamChange('initialWithdrawalAmount', v)} />
                 <button
                   className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
                   onClick={() => setIsInitialAmountLocked(prev => !prev)}

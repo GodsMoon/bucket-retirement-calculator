@@ -7,7 +7,7 @@ interface AllocationSliderProps {
   spy: number;
   qqq: number;
   bonds: number;
-  onParamChange: (param: string, value: number) => void;
+  onParamChange: (param: string, value: any) => void;
 }
 
 const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bonds, onParamChange }) => {
@@ -15,11 +15,6 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bon
 
   const handleChange = (newValues: number | number[]) => {
     if (Array.isArray(newValues)) {
-      const newCashPct = newValues[0];
-      const newSpyPct = newValues[1] - newValues[0];
-      const newQqqPct = newValues[2] - newValues[1];
-      const newBondsPct = 100 - newValues[2];
-
       const newCash = total * (newValues[0] / 100);
       const newSpy = total * ((newValues[1] - newValues[0]) / 100);
       const newQqq = total * ((newValues[2] - newValues[1]) / 100);

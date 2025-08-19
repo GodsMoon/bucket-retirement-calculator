@@ -287,7 +287,6 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
-            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -308,7 +307,6 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
-            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -334,6 +332,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -359,6 +358,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />

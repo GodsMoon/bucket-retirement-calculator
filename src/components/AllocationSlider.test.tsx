@@ -1,4 +1,3 @@
-import { render } from '@testing-library/react';
 import AllocationSlider from './AllocationSlider';
 import { vi, describe, it, expect } from 'vitest';
 

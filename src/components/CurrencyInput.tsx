@@ -32,7 +32,9 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({ value, onChange, step = 1
     const inputValue = e.target.value;
     if (inputValue === '' || inputValue === '$' || inputValue === '-') {
       setDisplayValue(inputValue);
-      if (inputValue === '') onChange(0);
+      if (inputValue === '' || inputValue === '$') {
+        onChange(0);
+      }
       return;
     }
     const numericValue = parseCurrency(inputValue);

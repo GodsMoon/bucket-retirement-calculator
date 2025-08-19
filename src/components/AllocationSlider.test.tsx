@@ -1,7 +1,5 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
 import AllocationSlider from './AllocationSlider';
-import { vi } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 
 import { screen } from '@testing-library/react';
 

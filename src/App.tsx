@@ -118,48 +118,67 @@ export default function App() {
     localStorage.setItem("activeProfile", p);
   };
 
-  const handleAllocationInputChange = (param: 'cash' | 'spy' | 'qqq' | 'bonds', newValue: number) => {
+  const handleAllocationInputChange = (param: 'cash' | 'spy' | 'qqq' | 'bonds', requestedValue: number) => {
     const total = portfolioStartBalance;
     const assets = { cash, spy, qqq, bonds };
     const oldValue = assets[param];
+
+    let newValue = requestedValue;
+    if (newValue < 0) newValue = 0;
+    if (newValue > total && total > 0) newValue = total;
+
     const delta = newValue - oldValue;
-
-    if (newValue < 0) return;
-
-    const others = (Object.keys(assets) as Array<keyof typeof assets>).filter(p => p !== param);
-    const totalOfOthers = total - oldValue;
-
-    if (totalOfOthers <= 0) {
-      // Not enough in other assets to rebalance, so just update the single value
-      handleParamChange(param, newValue);
-      return;
-    }
 
     const newValues = { ...assets };
     newValues[param] = newValue;
 
-    let remainingDelta = delta;
-    for(const otherParam of others) {
-      const otherValue = assets[otherParam];
-      const proportion = otherValue / totalOfOthers;
-      const change = remainingDelta * proportion;
-      newValues[otherParam] -= change;
+    const others = (Object.keys(assets) as Array<keyof typeof assets>).filter(p => p !== param);
+
+    // Distribute the delta to the other assets
+    let deltaToDistribute = -delta;
+    let totalOfOthers = others.reduce((sum, p) => assets[p], 0);
+
+    if (totalOfOthers > 0) {
+        for (const other of others) {
+            const proportion = assets[other] / totalOfOthers;
+            newValues[other] += deltaToDistribute * proportion;
+        }
+    } else if (deltaToDistribute !== 0) {
+        // This case occurs if the changed asset was 100% of the portfolio.
+        // Distribute the change equally among other assets.
+        const equalShare = deltaToDistribute / others.length;
+        for (const other of others) {
+            newValues[other] += equalShare;
+        }
     }
 
-    // Adjust for floating point inaccuracies to ensure the total remains constant
-    const newTotal = Object.values(newValues).reduce((sum, v) => sum + v, 0);
-    const roundingError = total - newTotal;
-    if (roundingError !== 0 && others.length > 0) {
-      const lastOther = others.find(p => newValues[p] - roundingError >= 0) || others[0];
-      newValues[lastOther] += roundingError;
+    // Handle cases where an asset might have gone negative
+    let negativeSum = 0;
+    for (const other of others) {
+        if (newValues[other] < 0) {
+            negativeSum += newValues[other];
+            newValues[other] = 0;
+        }
     }
 
-    // Final check for any negative values after rebalancing
-    if (Object.values(newValues).some(v => v < 0)) {
-        // Rebalancing resulted in a negative value, which is not allowed.
-        // In a real-world scenario, you might want to handle this more gracefully.
-        // For now, we'll just prevent the change.
-        return;
+    if (negativeSum < 0) {
+        // If we made some assets zero, we need to pull the deficit from the remaining positive assets
+        const positiveAssets = others.filter(p => newValues[p] > 0);
+        const totalOfPositive = positiveAssets.reduce((sum, p) => newValues[p], 0);
+        if (totalOfPositive > 0) {
+            for (const other of positiveAssets) {
+                const proportion = newValues[other] / totalOfPositive;
+                newValues[other] += negativeSum * proportion;
+            }
+        }
+    }
+
+    // Final rounding to ensure the total portfolio value remains exactly the same
+    const finalTotal = Object.values(newValues).reduce((sum, v) => sum + v, 0);
+    const roundingError = total - finalTotal;
+    if (Math.abs(roundingError) > 0.01) { // Allow for tiny floating point errors
+        const largestAsset = (Object.keys(newValues) as Array<keyof typeof newValues>).sort((a,b) => newValues[b] - newValues[a])[0];
+        newValues[largestAsset] += roundingError;
     }
 
     handleParamChange('allocation', newValues);
@@ -287,7 +306,6 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
-            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -308,7 +326,6 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
-            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -334,6 +351,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -359,6 +377,7 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
+            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />

@@ -4,6 +4,7 @@ import type { DrawdownStrategy } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import CurrencyInput from "./CurrencyInput";
 
 // ... (imports)
 
@@ -297,16 +298,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <h2 className="font-semibold">Inputs</h2>
           <h3 className="font-semibold">Portfolio Allocation:</h3>
           <label className="block text-sm">Cash
-            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={e => onParamChange('cash', Number(e.target.value))} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
           </label>
           <label className="block text-sm">SPY (S&P 500)
-            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={e => onParamChange('spy', Number(e.target.value))} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={v => onParamChange('spy', v)} />
           </label>
           <label className="block text-sm">QQQ (NASDAQ 100)
-            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={e => onParamChange('qqq', Number(e.target.value))} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onParamChange('qqq', v)} />
           </label>
           <label className="block text-sm">Bonds (10Y Treasury)
-            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={e => onParamChange('bonds', Number(e.target.value))} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onParamChange('bonds', v)} />
           </label>
           <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
 
@@ -320,12 +321,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
               <label className="block text-sm flex-1">First Withdrawal</label>
               <div className="flex items-center mt-1">
-                <input
-                  type="number"
+                <CurrencyInput
                   className={`w-full border rounded-xl p-2 transition-colors bg-white dark:bg-slate-700 dark:border-slate-600 ${isInitialAmountLocked ? 'text-green-800 dark:text-green-200 font-semibold' : ''}`}
                   value={Math.round(initialWithdrawalAmount)}
                   step={1000}
-                  onChange={e => onParamChange('initialWithdrawalAmount', Number(e.target.value))} />
+                  onChange={v => onParamChange('initialWithdrawalAmount', v)} />
                 <button
                   className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
                   onClick={() => setIsInitialAmountLocked(prev => !prev)}

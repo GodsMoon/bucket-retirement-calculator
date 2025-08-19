@@ -523,9 +523,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     const initialW = initialWithdrawalAmount / startBalance;
 
     if (mode === "actual-seq") {
-      const spyReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.spy);
-      const qqqReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.qqq);
-      const bondReturns = years.slice(years.indexOf(startYear), years.indexOf(startYear) + horizon).map(y => returnsByYear.get(y)!.bond);
+      let startIdx = years.indexOf(startYear);
+      if (startIdx === -1) startIdx = 0;
+      const yearSample = Array.from({ length: horizon }, (_, i) => years[(startIdx + i) % years.length]);
+      const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
+      const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
+      const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bond);
       if (strategy === "guytonKlinger") {
         runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
       } else if (strategy === "floorAndCeiling") {
@@ -544,10 +547,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         if (mode === 'bootstrap') {
           yearSample = bootstrapSample(years, horizon);
         } else if (mode === 'random-shuffle') {
-          yearSample = shuffle(years).slice(0, horizon);
+          const shuffled = shuffle(years);
+          yearSample = Array.from({ length: horizon }, (_, j) => shuffled[j % shuffled.length]);
         } else if (mode === 'actual-seq-random-start') {
-          const startIdx = Math.floor(Math.random() * (years.length - horizon + 1));
-          yearSample = years.slice(startIdx, startIdx + horizon);
+          const startIdx = Math.floor(Math.random() * years.length);
+          yearSample = Array.from({ length: horizon }, (_, j) => years[(startIdx + j) % years.length]);
         }
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);

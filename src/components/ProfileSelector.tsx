@@ -11,7 +11,7 @@ const profiles: Profile[] = ['Default', 'Donation', 'Custom'];
 
 const ProfileSelector: React.FC<ProfileSelectorProps> = ({ activeProfile, onProfileChange }) => {
   return (
-    <div className="flex space-x-2">
+    <div className="flex justify-end space-x-2">
       {profiles.map(p => (
         <button
           key={p}

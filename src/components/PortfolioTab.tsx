@@ -298,7 +298,6 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
       <section className="grid md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
-          <h2 className="font-semibold">Inputs</h2>
           <h3 className="font-semibold">Portfolio Allocation:</h3>
           <div className="p-4">
             <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />

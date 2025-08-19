@@ -1,7 +1,6 @@
+import { render, screen } from '@testing-library/react';
 import AllocationSlider from './AllocationSlider';
 import { vi, describe, it, expect } from 'vitest';
-
-import { screen } from '@testing-library/react';
 
 describe('AllocationSlider', () => {
   it('renders correctly and displays the correct initial allocation', () => {

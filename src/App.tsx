@@ -22,7 +22,8 @@ export type DrawdownStrategies =
   | "floorAndCeiling"
   | "capeBased"
   | "fixedPercentage"
-  | "noWithdrawalIfBelowStart";
+  | "noWithdrawalIfBelowStart"
+  | "fourPercentRule";
 
 
 export default function App() {

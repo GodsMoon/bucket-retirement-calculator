@@ -203,6 +203,83 @@ function simulateFloorAndCeiling(
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
 }
 
+function simulateFourPercentRule(
+  spyReturns: number[],
+  qqqReturns: number[],
+  bondReturns: number[],
+  initialCash: number,
+  initialSpy: number,
+  initialQqq: number,
+  initialBonds: number,
+  horizon: number,
+  initialWithdrawalAmount: number,
+  inflationAdjust: boolean,
+  inflationRate: number,
+): PortfolioRunResult {
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const withdrawals = new Array(horizon).fill(0);
+  let cash = initialCash;
+  let spy = initialSpy;
+  let qqq = initialQqq;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+
+  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  let failedYear: number | null = null;
+
+  let withdrawalAmount = initialWithdrawalAmount;
+
+  for (let y = 0; y < horizon; y++) {
+    const currentWithdrawal = withdrawalAmount;
+    withdrawals[y] = currentWithdrawal;
+
+    if (inflationAdjust) {
+      withdrawalAmount *= (1 + inflationRate);
+    }
+
+    // Drawdown from cash first
+    const fromCash = Math.min(currentWithdrawal, cash);
+    cash -= fromCash;
+    let remainingWithdrawal = currentWithdrawal - fromCash;
+
+    if (remainingWithdrawal > 0) {
+      const fromSpy = Math.min(remainingWithdrawal, spy);
+      spy -= fromSpy;
+      remainingWithdrawal -= fromSpy;
+
+      if (remainingWithdrawal > 0) {
+        const fromQqq = Math.min(remainingWithdrawal, qqq);
+        qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
+      }
+    }
+
+    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    if (totalBeforeGrowth <= 0 && failedYear === null) {
+      failedYear = y + 1;
+      for (let i = y + 1; i <= horizon; i++) {
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+      }
+      break;
+    }
+
+    // Apply market returns
+    spy *= spyReturns[y];
+    qqq *= qqqReturns[y];
+    bonds *= bondReturns[y];
+
+    const totalAfterGrowth = cash + spy + qqq + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+  }
+
+  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
+}
+
 function simulateNoWithdrawalIfBelowStart(
   spyReturns: number[],
   qqqReturns: number[],
@@ -431,6 +508,7 @@ function simulateCapeBased(
 
 
 interface DrawdownTabProps {
+  drawdownWithdrawalStrategy: DrawdownStrategies;
   startBalance: number;
   cash: number;
   spy: number;
@@ -455,6 +533,7 @@ interface DrawdownTabProps {
 import { CAPE_DATA } from "../data/cape";
 
 const DrawdownTab: React.FC<DrawdownTabProps> = ({
+  drawdownWithdrawalStrategy,
   startBalance,
   cash,
   spy,
@@ -475,7 +554,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   setIsInitialAmountLocked,
   refreshCounter,
 }) => {
-  const [strategy, setStrategy] = React.useState<DrawdownStrategies>("guytonKlinger");
+  const strategy = drawdownWithdrawalStrategy;
   const [guytonKlingerParams, setGuytonKlingerParams] = React.useState({
     guardrailUpper: 0.2,
     guardrailLower: 0.2,
@@ -539,6 +618,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
       } else if (strategy === "noWithdrawalIfBelowStart") {
         runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+      } else if (strategy === "fourPercentRule") {
+        runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       }
     } else {
       // Monte Carlo modes
@@ -566,6 +647,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
         } else if (strategy === "noWithdrawalIfBelowStart") {
           runs.push(simulateNoWithdrawalIfBelowStart(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        } else if (strategy === "fourPercentRule") {
+          runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         }
       }
     }
@@ -680,13 +763,15 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <select
               className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
               value={strategy}
-              onChange={e => setStrategy(e.target.value as DrawdownStrategies)}
+              onChange={e => onParamChange('drawdownWithdrawalStrategy', e.target.value)}
             >
+              <option value="fourPercentRule">4% Rule</option>
               <option value="guytonKlinger">Guyton-Klinger</option>
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
               <option value="fixedPercentage">Fixed % Drawdown</option>
               <option value="noWithdrawalIfBelowStart">No Withdrawal if Below Starting</option>
+              <option value="fourPercentRule">4% Rule</option>
             </select>
           </label>
 
@@ -988,6 +1073,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <div>
               <h3 className="font-semibold">No Withdrawal if Below Starting</h3>
               <p>This strategy only withdraws the initial withdrawal amount (adjusted for inflation if checked) if the current balance is larger than the starting balance. Otherwise, nothing is withdrawn from the account. This would be used for Donations if funds allow.</p>
+            </div>
+          )}
+          {strategy === 'fourPercentRule' && (
+            <div>
+              <h3 className="font-semibold">4% Rule</h3>
+              <p>The 4% rule is a guideline that suggests you can withdraw 4% of your portfolio's initial value in the first year of retirement. In subsequent years, you adjust the withdrawal amount for inflation. This strategy is the default for the other tabs in this tool.</p>
             </div>
           )}
         </div>

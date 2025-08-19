@@ -118,72 +118,6 @@ export default function App() {
     localStorage.setItem("activeProfile", p);
   };
 
-  const handleAllocationInputChange = (param: 'cash' | 'spy' | 'qqq' | 'bonds', requestedValue: number) => {
-    const total = portfolioStartBalance;
-    const assets = { cash, spy, qqq, bonds };
-    const oldValue = assets[param];
-
-    let newValue = requestedValue;
-    if (newValue < 0) newValue = 0;
-    if (newValue > total && total > 0) newValue = total;
-
-    const delta = newValue - oldValue;
-
-    const newValues = { ...assets };
-    newValues[param] = newValue;
-
-    const others = (Object.keys(assets) as Array<keyof typeof assets>).filter(p => p !== param);
-
-    // Distribute the delta to the other assets
-    let deltaToDistribute = -delta;
-    let totalOfOthers = others.reduce((sum, p) => assets[p], 0);
-
-    if (totalOfOthers > 0) {
-        for (const other of others) {
-            const proportion = assets[other] / totalOfOthers;
-            newValues[other] += deltaToDistribute * proportion;
-        }
-    } else if (deltaToDistribute !== 0) {
-        // This case occurs if the changed asset was 100% of the portfolio.
-        // Distribute the change equally among other assets.
-        const equalShare = deltaToDistribute / others.length;
-        for (const other of others) {
-            newValues[other] += equalShare;
-        }
-    }
-
-    // Handle cases where an asset might have gone negative
-    let negativeSum = 0;
-    for (const other of others) {
-        if (newValues[other] < 0) {
-            negativeSum += newValues[other];
-            newValues[other] = 0;
-        }
-    }
-
-    if (negativeSum < 0) {
-        // If we made some assets zero, we need to pull the deficit from the remaining positive assets
-        const positiveAssets = others.filter(p => newValues[p] > 0);
-        const totalOfPositive = positiveAssets.reduce((sum, p) => newValues[p], 0);
-        if (totalOfPositive > 0) {
-            for (const other of positiveAssets) {
-                const proportion = newValues[other] / totalOfPositive;
-                newValues[other] += negativeSum * proportion;
-            }
-        }
-    }
-
-    // Final rounding to ensure the total portfolio value remains exactly the same
-    const finalTotal = Object.values(newValues).reduce((sum, v) => sum + v, 0);
-    const roundingError = total - finalTotal;
-    if (Math.abs(roundingError) > 0.01) { // Allow for tiny floating point errors
-        const largestAsset = (Object.keys(newValues) as Array<keyof typeof newValues>).sort((a,b) => newValues[b] - newValues[a])[0];
-        newValues[largestAsset] += roundingError;
-    }
-
-    handleParamChange('allocation', newValues);
-  };
-
   const handleParamChange = (param: string, value: any) => {
     switch (param) {
       case 'startBalance': setStartBalance(parseFloat(value as string)); break;
@@ -351,7 +285,6 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
-            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />
@@ -377,7 +310,6 @@ export default function App() {
             startYear={startYear}
             onRefresh={handleRefresh}
             onParamChange={handleParamChange}
-            onAllocationChange={handleAllocationInputChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
           />

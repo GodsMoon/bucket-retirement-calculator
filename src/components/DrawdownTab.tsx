@@ -527,7 +527,6 @@ interface DrawdownTabProps {
   startYear: number;
   onRefresh: () => void;
   onParamChange: (param: string, value: any) => void;
-  onAllocationChange: (param: 'cash' | 'spy' | 'qqq' | 'bonds', value: number) => void;
   setIsInitialAmountLocked: (value: React.SetStateAction<boolean>) => void;
   refreshCounter: number;
 }
@@ -553,7 +552,6 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   startYear,
   onRefresh,
   onParamChange,
-  onAllocationChange,
   setIsInitialAmountLocked,
   refreshCounter,
 }) => {
@@ -696,21 +694,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
       <section className="grid md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <h2 className="font-semibold">Inputs</h2>
           <h3 className="font-semibold">Portfolio Allocation:</h3>
           <div className="p-4">
             <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />
           </div>
           <label className="block text-sm">Cash
-            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onAllocationChange('cash', v)} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
           </label>
           <label className="block text-sm">SPY (S&P 500)
-            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={v => onAllocationChange('spy', v)} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={v => onParamChange('spy', v)} />
           </label>
           <label className="block text-sm">QQQ (NASDAQ 100)
-            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onAllocationChange('qqq', v)} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onParamChange('qqq', v)} />
           </label>
           <label className="block text-sm">Bonds (10Y Treasury)
-            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onAllocationChange('bonds', v)} />
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onParamChange('bonds', v)} />
           </label>
           <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
 

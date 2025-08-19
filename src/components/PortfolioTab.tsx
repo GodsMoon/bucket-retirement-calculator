@@ -4,6 +4,7 @@ import type { DrawdownStrategy } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 
 // ... (imports)
@@ -172,7 +173,7 @@ interface PortfolioTabProps {
   seed: number | "";
   startYear: number;
   onRefresh: () => void;
-  onParamChange: (param: string, value: string | number | boolean) => void;
+  onParamChange: (param: string, value: any) => void;
   setIsInitialAmountLocked: (value: React.SetStateAction<boolean>) => void;
   refreshCounter: number;
 }
@@ -297,6 +298,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
           <h2 className="font-semibold">Inputs</h2>
           <h3 className="font-semibold">Portfolio Allocation:</h3>
+          <div className="p-4">
+            <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />
+          </div>
           <label className="block text-sm">Cash
             <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
           </label>

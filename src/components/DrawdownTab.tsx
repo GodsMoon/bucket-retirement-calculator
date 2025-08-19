@@ -771,6 +771,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <option value="capeBased">CAPE-Based</option>
               <option value="fixedPercentage">Fixed % Drawdown</option>
               <option value="noWithdrawalIfBelowStart">No Withdrawal if Below Starting</option>
+              <option value="fourPercentRule">4% Rule</option>
             </select>
           </label>
 

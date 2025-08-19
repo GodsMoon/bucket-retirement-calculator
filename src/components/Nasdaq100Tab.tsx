@@ -200,13 +200,12 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
           </label>
           <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
           <div className="flex gap-4">
-            <label className="block text-sm pt-2 flex-1">% of Starting Portfolio
+            <label className="block text-sm pt-2 flex-1">First Widthdraw (%)
               <input type="number" className="mt-1 w-3/4 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
               <span className="ml-2">%</span>
             </label>
-            <span className="mt-1 ">=</span>
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
-              <label className="block text-sm flex-1">First Widthdraw</label>
+              <label className="block text-sm flex-1">First Widthdraw ($)</label>
               <div className="flex items-center mt-1">
                 <CurrencyInput
                   className={`w-full border rounded-xl p-2 transition-colors bg-white dark:bg-slate-700 dark:border-slate-600 ${isInitialAmountLocked ? 'text-green-800 dark:text-green-200 font-semibold' : ''}`}

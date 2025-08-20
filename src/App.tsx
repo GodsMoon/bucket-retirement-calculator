@@ -9,13 +9,11 @@ import PortfolioTab from "./components/PortfolioTab";
 import DrawdownTab from "./components/DrawdownTab";
 import ProfileSelector, { type Profile } from "./components/ProfileSelector";
 import ThemeToggle from "./components/ThemeToggle";
-import MinimizedChartsBar from "./components/MinimizedChartsBar";
 
 export interface ChartState {
   minimized: boolean;
   title: string;
   tab: "sp500" | "nasdaq100" | "portfolio" | "drawdown";
-  minimizable: boolean;
 }
 
 export type DrawdownStrategy =
@@ -101,16 +99,16 @@ export default function App() {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(initialProfile.startYear);
   const [chartStates, setChartStates] = useState<Record<string, ChartState>>({
-    "sp500-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "sp500", minimizable: true },
-    "sp500-sample": { minimized: false, title: "Sample Run Trajectory", tab: "sp500", minimizable: true },
-    "nasdaq100-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "nasdaq100", minimizable: true },
-    "nasdaq100-sample": { minimized: false, title: "Sample Run Trajectory", tab: "nasdaq100", minimizable: true },
-    "portfolio-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "portfolio", minimizable: true },
-    "portfolio-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "portfolio", minimizable: true },
-    "portfolio-sample": { minimized: false, title: "Sample Run Trajectory", tab: "portfolio", minimizable: true },
-    "drawdown-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "drawdown", minimizable: true },
-    "drawdown-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "drawdown", minimizable: true },
-    "drawdown-sample": { minimized: false, title: "Sample Run Trajectory", tab: "drawdown", minimizable: true },
+    "sp500-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "sp500" },
+    "sp500-sample": { minimized: false, title: "Sample Run Trajectory", tab: "sp500" },
+    "nasdaq100-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "nasdaq100" },
+    "nasdaq100-sample": { minimized: false, title: "Sample Run Trajectory", tab: "nasdaq100" },
+    "portfolio-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "portfolio" },
+    "portfolio-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "portfolio" },
+    "portfolio-sample": { minimized: false, title: "Sample Run Trajectory", tab: "portfolio" },
+    "drawdown-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "drawdown" },
+    "drawdown-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "drawdown" },
+    "drawdown-sample": { minimized: false, title: "Sample Run Trajectory", tab: "drawdown" },
   });
 
   const [chartOrder, setChartOrder] = useState<Record<string, string[]>>({

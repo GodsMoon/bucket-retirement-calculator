@@ -6,6 +6,7 @@ import CurrencyInput from "./CurrencyInput";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
+import MinimizedChartsBar from "./MinimizedChartsBar";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 
@@ -38,7 +39,7 @@ function simulateGuytonKlinger(
   raisePercentage: number
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals = new Array(horizon).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   const guardrailTriggers: number[] = [];
   let cash = initialCash;
   let spy = initialSpy;
@@ -136,7 +137,7 @@ function simulateFloorAndCeiling(
   ceiling: number
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals = new Array(horizon).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -221,7 +222,7 @@ function simulateFourPercentRule(
   inflationRate: number,
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals = new Array(horizon).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -298,7 +299,7 @@ function simulatePrincipalProtectionRule(
   inflationRate: number,
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals = new Array(horizon).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -376,7 +377,7 @@ function simulateFixedPercentage(
   withdrawalRate: number,
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals = new Array(horizon).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -447,7 +448,7 @@ function simulateCapeBased(
   capeData: { [year: number]: number }
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals = new Array(horizon).fill(0);
+  const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
@@ -697,227 +698,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   const sampleRun = sims[0];
 
   const charts: Record<string, React.ReactNode> = {
-    'drawdown-inputs': (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
-        <h2 className="font-semibold">Inputs</h2>
-        <h3 className="font-semibold">Portfolio Allocation:</h3>
-        <div className="p-4">
-          <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />
-        </div>
-        <label className="block text-sm">Cash
-          <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
-        </label>
-        <label className="block text-sm">SPY (S&P 500)
-          <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={v => onParamChange('spy', v)} />
-        </label>
-        <label className="block text-sm">QQQ (NASDAQ 100)
-          <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onParamChange('qqq', v)} />
-        </label>
-        <label className="block text-sm">Bonds (10Y Treasury)
-          <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onParamChange('bonds', v)} />
-        </label>
-        <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
-
-        <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
-        <div className="flex flex-col lg:flex-row lg:gap-x-4 gap-y-2">
-          <label className="block text-sm pt-2 flex-1">First Withdrawal (%)
-            <input type="number" className="mt-1 w-3/4 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
-            <span className="ml-2">%</span>
-          </label>
-          <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
-            <label className="block text-sm flex-1">First Withdrawal ($)</label>
-            <div className="flex items-center mt-1">
-              <CurrencyInput
-                className={`w-full border rounded-xl p-2 transition-colors bg-white dark:bg-slate-700 dark:border-slate-600 ${isInitialAmountLocked ? 'text-green-800 dark:text-green-200 font-semibold' : ''}`}
-                value={Math.round(initialWithdrawalAmount)}
-                step={1000}
-                onChange={v => onParamChange('initialWithdrawalAmount', v)} />
-              <button
-                className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
-                onClick={() => setIsInitialAmountLocked(prev => !prev)}
-                title={isInitialAmountLocked ? "Unlock initial withdrawal amount" : "Lock initial withdrawal amount"}
-              >
-                {isInitialAmountLocked ? '🔒' : '🔓'}
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
-          <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
-        </div>
-        <label className="block text-sm">Assumed Inflation Rate
-          <div className="flex items-center mt-1">
-            <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
-            <span className="ml-2">%</span>
-          </div>
-        </label>
-      </div>
-    ),
-    'drawdown-sim-settings': (
-      <Chart
-        title="Simulation Settings"
-        onRefresh={onRefresh}
-        onMinimize={() => toggleMinimize('drawdown-sim-settings')}
-        minimizable={chartStates['drawdown-sim-settings'].minimizable}
-      >
-        <label className="block text-sm">Drawdown Strategy
-          <select
-            className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
-            value={strategy}
-            onChange={e => onParamChange('drawdownWithdrawalStrategy', e.target.value)}
-          >
-            <option value="fourPercentRule">4% Rule</option>
-            <option value="guytonKlinger">Guyton-Klinger</option>
-            <option value="floorAndCeiling">Floor and Ceiling</option>
-            <option value="capeBased">CAPE-Based</option>
-            <option value="fixedPercentage">Fixed % Drawdown</option>
-            <option value="principalProtectionRule">Principal Protection Rule</option>
-          </select>
-        </label>
-
-        {strategy === 'guytonKlinger' && (
-          <div className="text-sm border-t pt-2">
-            <h3 className="font-semibold mb-2">Guyton-Klinger Parameters</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="block">Guardrail Lower (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.guardrailLower * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailLower: parseFloat(e.target.value) / 100 })} />
-              </label>
-              <label className="block">Guardrail Upper (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.guardrailUpper * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailUpper: parseFloat(e.target.value) / 100 })} />
-              </label>
-              <label className="block">Raise Percentage (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.raisePercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, raisePercentage: parseFloat(e.target.value) / 100 })} />
-              </label>
-              <label className="block">Cut Percentage (%)
-                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
-              </label>
-            </div>
-          </div>
-        )}
-
-        {strategy === 'fixedPercentage' && (
-          <div className="space-y-2 text-sm border-t pt-2">
-            <h3 className="font-semibold">Fixed % Parameters</h3>
-            <label className="block">Withdrawal Rate (%)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={fixedPercentageParams.withdrawalRate * 100} onChange={e => setFixedPercentageParams({...fixedPercentageParams, withdrawalRate: parseFloat(e.target.value) / 100})} />
-            </label>
-          </div>
-        )}
-
-        {strategy === 'principalProtectionRule' && (
-          <div className="text-sm border-t pt-2">
-            <h3 className="font-semibold mb-2">Parameters</h3>
-              <p className="text-xs text-slate-600">This strategy uses the global initial withdrawal amount and inflation settings.</p>
-          </div>
-        )}
-
-        {strategy === 'floorAndCeiling' && (
-          <div className="space-y-2 text-sm border-t pt-2">
-            <h3 className="font-semibold">Floor and Ceiling Parameters</h3>
-            <label className="block">Floor (%)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={floorAndCeilingParams.floor * 100} step={1} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, floor: parseFloat(e.target.value) / 100})} />
-            </label>
-            <label className="block">Ceiling (%)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={floorAndCeilingParams.ceiling * 100} step={1} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, ceiling: parseFloat(e.target.value) / 100})} />
-            </label>
-          </div>
-        )}
-
-        {strategy === 'capeBased' && (
-          <div className="space-y-2 text-sm border-t pt-2">
-            <h3 className="font-semibold">CAPE-Based Parameters</h3>
-            <label className="block">Base Percentage (%)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={capeBasedParams.basePercentage * 100} onChange={e => setCapeBasedParams({...capeBasedParams, basePercentage: parseFloat(e.target.value) / 100})} />
-            </label>
-            <label className="block">CAPE Fraction
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={capeBasedParams.capeFraction} step={0.1} onChange={e => setCapeBasedParams({...capeBasedParams, capeFraction: parseFloat(e.target.value)})} />
-            </label>
-          </div>
-        )}
-
-        <label className="block text-sm pt-2 border-t">Horizon (years)
-          <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
-        </label>
-        <div className="space-y-2 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="mode"
-              checked={mode === 'actual-seq'}
-              onChange={() => onParamChange('mode', 'actual-seq')}
-            />
-            <span>Actual sequence (start year)</span>
-            <input
-              type="number"
-              className="ml-2 w-24 border rounded-xl p-1 disabled:opacity-50 bg-white dark:bg-slate-700 dark:border-slate-600"
-              value={startYear}
-              min={Math.min(...years)}
-              max={Math.max(...years) - horizon + 1}
-              disabled={mode !== 'actual-seq'}
-              onChange={(e) => {
-                const y = Number(e.target.value);
-                const minYear = Math.min(...years);
-                const maxYear = Math.max(...years);
-                const clamped = Math.min(Math.max(y, minYear), maxYear - horizon + 1);
-                onParamChange('startYear', clamped);
-              }}
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
-            Actual sequence (randomize start year)
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => onParamChange('mode', 'random-shuffle')} />
-            Random shuffle of historical years
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" checked={mode === 'bootstrap'} onChange={() => onParamChange('mode', 'bootstrap')} />
-            Bootstrap (sample with replacement)
-          </label>
-        </div>
-        {(mode === 'actual-seq-random-start' || mode === 'random-shuffle' || mode === 'bootstrap') && (
-          <>
-            <label className="block text-sm"># Monte Carlo runs
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={numRuns} onChange={e => onParamChange('numRuns', Math.max(1, Number(e.target.value)))} />
-            </label>
-            <label className="block text-sm">Seed (optional)
-              <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={seed} onChange={e => onParamChange('seed', e.target.value === '' ? '' : Number(e.target.value))} />
-            </label>
-          </>
-        )}
-      </Chart>
-    ),
-    'drawdown-results': (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
-        <h2 className="font-semibold">Results</h2>
-        {stats && (
-          <div className="space-y-2 text-sm">
-            <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
-            {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
-            <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
-            <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
-            <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
-            <div className="border-t pt-2 mt-2">
-              <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
-              <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
-              <div>Max Drawdown: <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
-              <div>Worst Low Point: <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
-            </div>
-          </div>
-        )}
-        {sampleRun && (
-          <div className="text-xs text-slate-600 dark:text-slate-400">First failure year (sample run): {sampleRun.failedYear ?? 'none'}</div>
-        )}
-      </div>
-    ),
     'drawdown-trajectory': (
       <Chart
         title="Portfolio Trajectory Bands"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-trajectory')}
-        minimizable={chartStates['drawdown-trajectory'].minimizable}
+        minimizable={true}
       >
         {stats && (
           <div className="h-80">
@@ -944,7 +730,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title="Sample Run Asset Allocation"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
-        minimizable={chartStates['drawdown-asset-allocation'].minimizable}
+        minimizable={true}
       >
         {sampleRun && (
           <div className="h-72">
@@ -980,7 +766,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title="Sample Run Trajectory"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-sample')}
-        minimizable={chartStates['drawdown-sample'].minimizable}
+        minimizable={true}
       >
         {sampleRun && (
           <div className="h-72">
@@ -1031,19 +817,230 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100 and 10Y Treasury total return</div>
 
-      <div className="grid md:grid-cols-3 gap-4 auto-rows-fr">
-        {chartOrder.filter(id => ['drawdown-inputs', 'drawdown-sim-settings', 'drawdown-results'].includes(id)).map(chartId => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
+      <section className="grid md:grid-cols-3 gap-4 auto-rows-fr">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <h2 className="font-semibold">Inputs</h2>
+          <h3 className="font-semibold">Portfolio Allocation:</h3>
+          <div className="p-4">
+            <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />
           </div>
-        ))}
-      </div>
+          <label className="block text-sm">Cash
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
+          </label>
+          <label className="block text-sm">SPY (S&P 500)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={v => onParamChange('spy', v)} />
+          </label>
+          <label className="block text-sm">QQQ (NASDAQ 100)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onParamChange('qqq', v)} />
+          </label>
+          <label className="block text-sm">Bonds (10Y Treasury)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onParamChange('bonds', v)} />
+          </label>
+          <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
+
+          <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
+          <div className="flex flex-col lg:flex-row lg:gap-x-4 gap-y-2">
+            <label className="block text-sm pt-2 flex-1">First Withdrawal (%)
+              <input type="number" className="mt-1 w-3/4 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
+              <span className="ml-2">%</span>
+            </label>
+            <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
+              <label className="block text-sm flex-1">First Withdrawal ($)</label>
+              <div className="flex items-center mt-1">
+                <CurrencyInput
+                  className={`w-full border rounded-xl p-2 transition-colors bg-white dark:bg-slate-700 dark:border-slate-600 ${isInitialAmountLocked ? 'text-green-800 dark:text-green-200 font-semibold' : ''}`}
+                  value={Math.round(initialWithdrawalAmount)}
+                  step={1000}
+                  onChange={v => onParamChange('initialWithdrawalAmount', v)} />
+                <button
+                  className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
+                  onClick={() => setIsInitialAmountLocked(prev => !prev)}
+                  title={isInitialAmountLocked ? "Unlock initial withdrawal amount" : "Lock initial withdrawal amount"}
+                >
+                  {isInitialAmountLocked ? '🔒' : '🔓'}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
+            <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
+          </div>
+          <label className="block text-sm">Assumed Inflation Rate
+            <div className="flex items-center mt-1">
+              <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <span className="ml-2">%</span>
+            </div>
+          </label>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Simulation Settings</h2>
+            <button
+              className="text-lg hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+          </div>
+          <label className="block text-sm">Drawdown Strategy
+            <select
+              className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+              value={strategy}
+              onChange={e => onParamChange('drawdownWithdrawalStrategy', e.target.value)}
+            >
+              <option value="fourPercentRule">4% Rule</option>
+              <option value="guytonKlinger">Guyton-Klinger</option>
+              <option value="floorAndCeiling">Floor and Ceiling</option>
+              <option value="capeBased">CAPE-Based</option>
+              <option value="fixedPercentage">Fixed % Drawdown</option>
+              <option value="principalProtectionRule">Principal Protection Rule</option>
+            </select>
+          </label>
+
+          {strategy === 'guytonKlinger' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font-semibold mb-2">Guyton-Klinger Parameters</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">Guardrail Lower (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.guardrailLower * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailLower: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Guardrail Upper (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.guardrailUpper * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailUpper: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Raise Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.raisePercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, raisePercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Cut Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {strategy === 'fixedPercentage' && (
+            <div className="space-y-2 text-sm border-t pt-2">
+              <h3 className="font-semibold">Fixed % Parameters</h3>
+              <label className="block">Withdrawal Rate (%)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={fixedPercentageParams.withdrawalRate * 100} onChange={e => setFixedPercentageParams({...fixedPercentageParams, withdrawalRate: parseFloat(e.target.value) / 100})} />
+              </label>
+            </div>
+          )}
+
+          {strategy === 'principalProtectionRule' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font-semibold mb-2">Parameters</h3>
+                <p className="text-xs text-slate-600">This strategy uses the global initial withdrawal amount and inflation settings.</p>
+            </div>
+          )}
+
+          {strategy === 'floorAndCeiling' && (
+            <div className="space-y-2 text-sm border-t pt-2">
+              <h3 className="font-semibold">Floor and Ceiling Parameters</h3>
+              <label className="block">Floor (%)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={floorAndCeilingParams.floor * 100} step={1} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, floor: parseFloat(e.target.value) / 100})} />
+              </label>
+              <label className="block">Ceiling (%)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={floorAndCeilingParams.ceiling * 100} step={1} onChange={e => setFloorAndCeilingParams({...floorAndCeilingParams, ceiling: parseFloat(e.target.value) / 100})} />
+              </label>
+            </div>
+          )}
+
+          {strategy === 'capeBased' && (
+            <div className="space-y-2 text-sm border-t pt-2">
+              <h3 className="font-semibold">CAPE-Based Parameters</h3>
+              <label className="block">Base Percentage (%)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={capeBasedParams.basePercentage * 100} onChange={e => setCapeBasedParams({...capeBasedParams, basePercentage: parseFloat(e.target.value) / 100})} />
+              </label>
+              <label className="block">CAPE Fraction
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={capeBasedParams.capeFraction} step={0.1} onChange={e => setCapeBasedParams({...capeBasedParams, capeFraction: parseFloat(e.target.value)})} />
+              </label>
+            </div>
+          )}
+
+          <label className="block text-sm pt-2 border-t">Horizon (years)
+            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
+          </label>
+          <div className="space-y-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="mode"
+                checked={mode === 'actual-seq'}
+                onChange={() => onParamChange('mode', 'actual-seq')}
+              />
+              <span>Actual sequence (start year)</span>
+              <input
+                type="number"
+                className="ml-2 w-24 border rounded-xl p-1 disabled:opacity-50 bg-white dark:bg-slate-700 dark:border-slate-600"
+                value={startYear}
+                min={Math.min(...years)}
+                max={Math.max(...years) - horizon + 1}
+                disabled={mode !== 'actual-seq'}
+                onChange={(e) => {
+                  const y = Number(e.target.value);
+                  const minYear = Math.min(...years);
+                  const maxYear = Math.max(...years);
+                  const clamped = Math.min(Math.max(y, minYear), maxYear - horizon + 1);
+                  onParamChange('startYear', clamped);
+                }}
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
+              Actual sequence (randomize start year)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => onParamChange('mode', 'random-shuffle')} />
+              Random shuffle of historical years
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'bootstrap'} onChange={() => onParamChange('mode', 'bootstrap')} />
+              Bootstrap (sample with replacement)
+            </label>
+          </div>
+          {(mode === 'actual-seq-random-start' || mode === 'random-shuffle' || mode === 'bootstrap') && (
+            <>
+              <label className="block text-sm"># Monte Carlo runs
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={numRuns} onChange={e => onParamChange('numRuns', Math.max(1, Number(e.target.value)))} />
+              </label>
+              <label className="block text-sm">Seed (optional)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={seed} onChange={e => onParamChange('seed', e.target.value === '' ? '' : Number(e.target.value))} />
+              </label>
+            </>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <h2 className="font-semibold">Results</h2>
+          {stats && (
+            <div className="space-y-2 text-sm">
+              <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
+              {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
+              <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
+              <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
+              <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
+              <div className="border-t pt-2 mt-2">
+                <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
+                <div>Max Drawdown: <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Worst Low Point: <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
+              </div>
+            </div>
+          )}
+          {sampleRun && (
+            <div className="text-xs text-slate-600 dark:text-slate-400">First failure year (sample run): {sampleRun.failedYear ?? 'none'}</div>
+          )}
+        </div>
+      </section>
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
       <div className="space-y-6">
-        {chartOrder.filter(id => !['drawdown-inputs', 'drawdown-sim-settings', 'drawdown-results'].includes(id)).map(chartId => (
+        {chartOrder.map((chartId: string) => (
           !chartStates[chartId].minimized &&
           <div key={chartId}>
             {charts[chartId]}

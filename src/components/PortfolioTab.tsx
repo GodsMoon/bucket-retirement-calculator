@@ -6,6 +6,10 @@ import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
+import Chart from "./Chart";
+import type { ChartState } from "../App";
+import MinimizedChartsBar from "./MinimizedChartsBar";
+
 // ... (imports)
 
 // Custom RunResult for portfolio simulation
@@ -177,6 +181,7 @@ interface PortfolioTabProps {
   refreshCounter: number;
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
+  chartOrder: string[];
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -300,7 +305,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title="Portfolio Trajectory Bands"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
-        minimizable={chartStates['portfolio-trajectory'].minimizable}
+        minimizable={true}
       >
         {stats && (
           <div className="h-80">
@@ -327,7 +332,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title="Sample Run Asset Allocation"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
-        minimizable={chartStates['portfolio-asset-allocation'].minimizable}
+        minimizable={true}
       >
         {sampleRun && (
           <div className="h-72">
@@ -363,7 +368,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title="Sample Run Trajectory"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
-        minimizable={chartStates['portfolio-sample'].minimizable}
+        minimizable={true}
       >
         {sampleRun && (
           <div className="h-72">
@@ -401,19 +406,168 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
 
-      <div className="grid md:grid-cols-3 gap-4 auto-rows-fr">
-        {chartOrder.filter(id => ['portfolio-inputs', 'portfolio-sim-settings', 'portfolio-results'].includes(id)).map(chartId => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
+      <section className="grid md:grid-cols-3 gap-4 auto-rows-fr">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <h2 className="font-semibold">Inputs</h2>
+          <h3 className="font-semibold">Portfolio Allocation:</h3>
+          <div className="p-4">
+            <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />
           </div>
-        ))}
-      </div>
+          <label className="block text-sm">Cash
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
+          </label>
+          <label className="block text-sm">SPY (S&P 500)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={spy} step={10000} onChange={v => onParamChange('spy', v)} />
+          </label>
+          <label className="block text-sm">QQQ (NASDAQ 100)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onParamChange('qqq', v)} />
+          </label>
+          <label className="block text-sm">Bonds (10Y Treasury)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onParamChange('bonds', v)} />
+          </label>
+          <div className="text-sm font-semibold">Total: {currency.format(startBalance)}</div>
+
+          <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
+          <div className="flex flex-col lg:flex-row lg:gap-x-4 gap-y-2">
+            <label className="block text-sm pt-2 flex-1">First Withdrawal (%)
+              <input type="number" className="mt-1 w-3/4 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
+              <span className="ml-2">%</span>
+            </label>
+            <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
+              <label className="block text-sm flex-1">First Withdrawal ($)</label>
+              <div className="flex items-center mt-1">
+                <CurrencyInput
+                  className={`w-full border rounded-xl p-2 transition-colors bg-white dark:bg-slate-700 dark:border-slate-600 ${isInitialAmountLocked ? 'text-green-800 dark:text-green-200 font-semibold' : ''}`}
+                  value={Math.round(initialWithdrawalAmount)}
+                  step={1000}
+                  onChange={v => onParamChange('initialWithdrawalAmount', v)} />
+                <button
+                  className={`ml-2 text-xl p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${isInitialAmountLocked ? 'opacity-100' : 'opacity-50'}`}
+                  onClick={() => setIsInitialAmountLocked(prev => !prev)}
+                  title={isInitialAmountLocked ? "Unlock initial withdrawal amount" : "Lock initial withdrawal amount"}
+                >
+                  {isInitialAmountLocked ? '🔒' : '🔓'}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
+            <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
+          </div>
+          <label className="block text-sm">Assumed Inflation Rate
+            <div className="flex items-center mt-1">
+              <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <span className="ml-2">%</span>
+            </div>
+          </label>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Simulation Settings</h2>
+            <button
+              className="text-lg hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              onClick={onRefresh}
+              aria-label="Refresh simulation"
+              title="Refresh simulation"
+            >
+              ⟳
+            </button>
+          </div>
+          <label className="block text-sm">Drawdown Strategy
+            <select
+              className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+              value={drawdownStrategy}
+              onChange={e => onParamChange('drawdownStrategy', e.target.value)}
+            >
+              <option value="cashFirst_spyThenQqq">Cash 1st, then SPY, then QQQ, then Bonds</option>
+              <option value="cashFirst_qqqThenSpy">Cash 1st, then QQQ, then SPY, then Bonds</option>
+              <option value="cashFirst_equalParts">Cash 1st, then equal parts SPY, QQQ & Bonds</option>
+              <option value="cashFirst_bestPerformer">Cash 1st, then best performer of year</option>
+              <option value="cashFirst_worstPerformer">Cash 1st, then worst performer of year</option>
+            </select>
+          </label>
+          <label className="block text-sm">Horizon (years)
+            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
+          </label>
+          <div className="space-y-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="mode"
+                checked={mode === 'actual-seq'}
+                onChange={() => onParamChange('mode', 'actual-seq')}
+              />
+              <span>Actual sequence (start year)</span>
+              <input
+                type="number"
+                className="ml-2 w-24 border rounded-xl p-1 disabled:opacity-50 bg-white dark:bg-slate-700 dark:border-slate-600"
+                value={startYear}
+                min={Math.min(...years)}
+                max={Math.max(...years) - horizon + 1}
+                disabled={mode !== 'actual-seq'}
+                onChange={(e) => {
+                  const y = Number(e.target.value);
+                  const minYear = Math.min(...years);
+                  const maxYear = Math.max(...years);
+                  const clamped = Math.min(Math.max(y, minYear), maxYear - horizon + 1);
+                  onParamChange('startYear', clamped);
+                }}
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
+              Actual sequence (randomize start year)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => onParamChange('mode', 'random-shuffle')} />
+              Random shuffle of historical years
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'bootstrap'} onChange={() => onParamChange('mode', 'bootstrap')} />
+              Bootstrap (sample with replacement)
+            </label>
+          </div>
+          {(mode === 'actual-seq-random-start' || mode === 'random-shuffle' || mode === 'bootstrap') && (
+            <>
+              <label className="block text-sm"># Monte Carlo runs
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={numRuns} onChange={e => onParamChange('numRuns', Math.max(1, Number(e.target.value)))} />
+              </label>
+              <label className="block text-sm">Seed (optional)
+                <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={seed} onChange={e => onParamChange('seed', e.target.value === '' ? '' : Number(e.target.value))} />
+              </label>
+            </>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
+          <h2 className="font-semibold">Results</h2>
+          {stats && (
+            <div className="space-y-2 text-sm">
+              <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
+              {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
+              <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
+              <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
+              <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
+              <div className="border-t pt-2 mt-2">
+                <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
+                <div>Max Drawdown: <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
+                <div>Worst Low Point: <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
+              </div>
+            </div>
+          )}
+          {sampleRun && (
+            <div className="text-xs text-slate-600 dark:text-slate-400">First failure year (sample run): {sampleRun.failedYear ?? 'none'}</div>
+          )}
+        </div>
+      </section>
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
       <div className="space-y-6">
-        {chartOrder.filter(id => !['portfolio-inputs', 'portfolio-sim-settings', 'portfolio-results'].includes(id)).map(chartId => (
+        {chartOrder.map((chartId: string) => (
           !chartStates[chartId].minimized &&
           <div key={chartId}>
             {charts[chartId]}

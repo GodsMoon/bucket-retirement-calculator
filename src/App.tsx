@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePersistentState } from "./hooks/usePersistentState";
 import { useMemo } from "react";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "./data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "./data/bonds";
@@ -28,7 +29,7 @@ export type DrawdownStrategies =
 
 export default function App() {
   const round2 = (n: number) => Math.round(n * 100) / 100;
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = usePersistentState("darkMode", false);
   const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
 
   const years = useMemo(() => {
@@ -92,8 +93,6 @@ export default function App() {
   const [seed, setSeed] = useState<number | "">(initialProfile.seed);
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(initialProfile.startYear);
-
-  const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   const handleProfileChange = (p: Profile) => {
     const data = loadProfileData(p);
@@ -212,7 +211,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto space-y-6">
           <header className="flex items-center justify-between">
             <h1 className="text-2xl md:text-3xl font-bold">4% Rule Tester — Monte Carlo</h1>
-            <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            <ThemeToggle darkMode={darkMode} toggleDarkMode={() => setDarkMode(prev => !prev)} />
           </header>
 
         <ProfileSelector

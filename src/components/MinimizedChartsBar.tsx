@@ -22,7 +22,7 @@ const MinimizedChartsBar: React.FC<MinimizedChartsBarProps> = ({ chartStates, on
           onClick={() => onRestore(id)}
           className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1 rounded-full text-sm hover:bg-slate-300 dark:hover:bg-slate-600"
         >
-          {chart.title}
+          + {chart.title}
         </button>
       ))}
     </div>

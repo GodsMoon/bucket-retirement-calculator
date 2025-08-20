@@ -101,35 +101,23 @@ export default function App() {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(initialProfile.startYear);
   const [chartStates, setChartStates] = useState<Record<string, ChartState>>({
-    "sp500-inputs": { minimized: false, title: "Inputs", tab: "sp500", minimizable: false },
-    "sp500-sim-mode": { minimized: false, title: "Simulation Mode", tab: "sp500", minimizable: true },
-    "sp500-results": { minimized: false, title: "Results", tab: "sp500", minimizable: false },
     "sp500-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "sp500", minimizable: true },
     "sp500-sample": { minimized: false, title: "Sample Run Trajectory", tab: "sp500", minimizable: true },
-    "nasdaq100-inputs": { minimized: false, title: "Inputs", tab: "nasdaq100", minimizable: false },
-    "nasdaq100-sim-mode": { minimized: false, title: "Simulation Mode", tab: "nasdaq100", minimizable: true },
-    "nasdaq100-results": { minimized: false, title: "Results", tab: "nasdaq100", minimizable: false },
     "nasdaq100-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "nasdaq100", minimizable: true },
     "nasdaq100-sample": { minimized: false, title: "Sample Run Trajectory", tab: "nasdaq100", minimizable: true },
-    "portfolio-inputs": { minimized: false, title: "Inputs", tab: "portfolio", minimizable: false },
-    "portfolio-sim-settings": { minimized: false, title: "Simulation Settings", tab: "portfolio", minimizable: true },
-    "portfolio-results": { minimized: false, title: "Results", tab: "portfolio", minimizable: false },
     "portfolio-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "portfolio", minimizable: true },
     "portfolio-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "portfolio", minimizable: true },
     "portfolio-sample": { minimized: false, title: "Sample Run Trajectory", tab: "portfolio", minimizable: true },
-    "drawdown-inputs": { minimized: false, title: "Inputs", tab: "drawdown", minimizable: false },
-    "drawdown-sim-settings": { minimized: false, title: "Simulation Settings", tab: "drawdown", minimizable: true },
-    "drawdown-results": { minimized: false, title: "Results", tab: "drawdown", minimizable: false },
     "drawdown-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "drawdown", minimizable: true },
     "drawdown-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "drawdown", minimizable: true },
     "drawdown-sample": { minimized: false, title: "Sample Run Trajectory", tab: "drawdown", minimizable: true },
   });
 
   const [chartOrder, setChartOrder] = useState<Record<string, string[]>>({
-    sp500: ["sp500-inputs", "sp500-sim-mode", "sp500-results", "sp500-trajectory", "sp500-sample"],
-    nasdaq100: ["nasdaq100-inputs", "nasdaq100-sim-mode", "nasdaq100-results", "nasdaq100-trajectory", "nasdaq100-sample"],
-    portfolio: ["portfolio-inputs", "portfolio-sim-settings", "portfolio-results", "portfolio-trajectory", "portfolio-asset-allocation", "portfolio-sample"],
-    drawdown: ["drawdown-inputs", "drawdown-sim-settings", "drawdown-results", "drawdown-trajectory", "drawdown-asset-allocation", "drawdown-sample"],
+    sp500: ["sp500-trajectory", "sp500-sample"],
+    nasdaq100: ["nasdaq100-trajectory", "nasdaq100-sample"],
+    portfolio: ["portfolio-trajectory", "portfolio-asset-allocation", "portfolio-sample"],
+    drawdown: ["drawdown-trajectory", "drawdown-asset-allocation", "drawdown-sample"],
   });
 
   const toggleMinimize = (chartId: string) => {

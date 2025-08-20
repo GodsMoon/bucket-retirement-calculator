@@ -11,6 +11,12 @@ import DrawdownTab from "./components/DrawdownTab";
 import ProfileSelector, { type Profile } from "./components/ProfileSelector";
 import ThemeToggle from "./components/ThemeToggle";
 
+export interface ChartState {
+  minimized: boolean;
+  title: string;
+  tab: "sp500" | "nasdaq100" | "portfolio" | "drawdown";
+}
+
 export type DrawdownStrategy =
   | "cashFirst_spyThenQqq"
   | "cashFirst_qqqThenSpy"
@@ -93,6 +99,38 @@ export default function App() {
   const [seed, setSeed] = useState<number | "">(initialProfile.seed);
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(initialProfile.startYear);
+  const [chartStates, setChartStates] = useState<Record<string, ChartState>>({
+    "sp500-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "sp500" },
+    "sp500-sample": { minimized: false, title: "Sample Run Trajectory", tab: "sp500" },
+    "nasdaq100-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "nasdaq100" },
+    "nasdaq100-sample": { minimized: false, title: "Sample Run Trajectory", tab: "nasdaq100" },
+    "portfolio-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "portfolio" },
+    "portfolio-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "portfolio" },
+    "portfolio-sample": { minimized: false, title: "Sample Run Trajectory", tab: "portfolio" },
+    "drawdown-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "drawdown" },
+    "drawdown-asset-allocation": { minimized: false, title: "Sample Run Asset Allocation", tab: "drawdown" },
+    "drawdown-sample": { minimized: false, title: "Sample Run Trajectory", tab: "drawdown" },
+  });
+
+  const [chartOrder, setChartOrder] = useState<Record<string, string[]>>({
+    sp500: ["sp500-trajectory", "sp500-sample"],
+    nasdaq100: ["nasdaq100-trajectory", "nasdaq100-sample"],
+    portfolio: ["portfolio-trajectory", "portfolio-asset-allocation", "portfolio-sample"],
+    drawdown: ["drawdown-trajectory", "drawdown-asset-allocation", "drawdown-sample"],
+  });
+
+  const toggleMinimize = (chartId: string) => {
+    const newChartStates = { ...chartStates };
+    newChartStates[chartId].minimized = !newChartStates[chartId].minimized;
+    setChartStates(newChartStates);
+
+    if (!newChartStates[chartId].minimized) {
+      const tab = newChartStates[chartId].tab;
+      const order = chartOrder[tab];
+      const newOrder = [chartId, ...order.filter(id => id !== chartId)];
+      setChartOrder(prev => ({ ...prev, [tab]: newOrder }));
+    }
+  };
 
   const handleProfileChange = (p: Profile) => {
     const data = loadProfileData(p);
@@ -241,6 +279,9 @@ export default function App() {
             onParamChange={handleParamChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
+            chartStates={chartStates}
+            toggleMinimize={toggleMinimize}
+            chartOrder={chartOrder.sp500}
           />
         )}
 
@@ -261,6 +302,9 @@ export default function App() {
             onParamChange={handleParamChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
+            chartStates={chartStates}
+            toggleMinimize={toggleMinimize}
+            chartOrder={chartOrder.nasdaq100}
           />
         )}
 
@@ -286,6 +330,9 @@ export default function App() {
             onParamChange={handleParamChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
+            chartStates={chartStates}
+            toggleMinimize={toggleMinimize}
+            chartOrder={chartOrder.portfolio}
           />
         )}
 
@@ -311,6 +358,9 @@ export default function App() {
             onParamChange={handleParamChange}
             setIsInitialAmountLocked={setIsInitialAmountLocked}
             refreshCounter={refreshCounter}
+            chartStates={chartStates}
+            toggleMinimize={toggleMinimize}
+            chartOrder={chartOrder.drawdown}
           />
         )}
         </div>

@@ -6,6 +6,9 @@ import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
+import Chart from "./Chart";
+import type { ChartState } from "../App";
+import MinimizedChartsBar from "./MinimizedChartsBar";
 
 // ... (imports)
 
@@ -176,6 +179,9 @@ interface PortfolioTabProps {
   onParamChange: (param: string, value: any) => void;
   setIsInitialAmountLocked: (value: React.SetStateAction<boolean>) => void;
   refreshCounter: number;
+  chartStates: Record<string, ChartState>;
+  toggleMinimize: (chartId: string) => void;
+  chartOrder: string[];
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -199,6 +205,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   onParamChange,
   setIsInitialAmountLocked,
   refreshCounter,
+  chartStates,
+  toggleMinimize,
+  chartOrder,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
@@ -290,11 +299,114 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
   const sampleRun = sims[0];
 
+  const charts: Record<string, React.ReactNode> = {
+    'portfolio-trajectory': (
+      <Chart
+        title="Portfolio Trajectory Bands"
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('portfolio-trajectory')}
+        minimizable={true}
+      >
+        {stats && (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
+                <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
+                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
+                <Legend />
+                <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
+                <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
+                <Area type="monotone" dataKey="p50" name="50th %ile" fillOpacity={0.15} stroke="#68a" fill="#68a" />
+                <Area type="monotone" dataKey="p25" name="25th %ile" fillOpacity={0.15} stroke="#8ac" fill="#8ac" />
+                <Area type="monotone" dataKey="p10" name="10th %ile" fillOpacity={0.15} stroke="#acd" fill="#acd" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
+    'portfolio-asset-allocation': (
+      <Chart
+        title="Sample Run Asset Allocation"
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
+        minimizable={true}
+      >
+        {sampleRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                stackOffset="expand"
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                    const pct = total === 0 ? 0 : (value / total) * 100;
+                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
+    'portfolio-sample': (
+      <Chart
+        title="Sample Run Trajectory"
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('portfolio-sample')}
+        minimizable={true}
+      >
+        {sampleRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={sampleRun.balances.map((b, i) => ({
+                  year: i,
+                  balance: b.total,
+                  withdrawal: sampleRun.withdrawals[i],
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    return [`${currency.format(value)}`, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
 
-      <section className="grid md:grid-cols-3 gap-4">
+      <section className="grid md:grid-cols-3 gap-4 auto-rows-fr">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
           <h2 className="font-semibold">Inputs</h2>
           <h3 className="font-semibold">Portfolio Allocation:</h3>
@@ -452,120 +564,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         </div>
       </section>
 
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
-        <div className="flex items-center justify-between">
-            <h2 className="font-semibold mb-2">Portfolio Trajectory Bands</h2>
-            <button
-              className="text-lg hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
-              onClick={onRefresh}
-              aria-label="Refresh simulation"
-              title="Refresh simulation"
-            >
-              ⟳
-            </button>
-          </div>
-        {stats && (
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
-                <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
-                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
-                <Legend />
-                <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
-                <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
-                <Area type="monotone" dataKey="p50" name="50th %ile" fillOpacity={0.15} stroke="#68a" fill="#68a" />
-                <Area type="monotone" dataKey="p25" name="25th %ile" fillOpacity={0.15} stroke="#8ac" fill="#8ac" />
-                <Area type="monotone" dataKey="p10" name="10th %ile" fillOpacity={0.15} stroke="#acd" fill="#acd" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </section>
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
-        <div className="flex items-center justify-between">
-            <h2 className="font-semibold mb-2">Sample Run Asset Allocation</h2>
-            <button
-              className="text-lg hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
-              onClick={onRefresh}
-              aria-label="Refresh simulation"
-              title="Refresh simulation"
-            >
-              ⟳
-            </button>
-        </div>
-        {sampleRun && (
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
-                stackOffset="expand"
-                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="year" />
-                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
-                <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
-                    const pct = total === 0 ? 0 : (value / total) * 100;
-                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
-                  }}
-                />
-                <Legend />
-                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
-                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
-                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
-              </AreaChart>
-            </ResponsiveContainer>
+      <div className="space-y-6">
+        {chartOrder.map((chartId: string) => (
+          !chartStates[chartId].minimized &&
+          <div key={chartId}>
+            {charts[chartId]}
           </div>
-        )}
-      </section>
-
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
-        <div className="flex items-center justify-between">
-            <h2 className="font-semibold mb-2">Sample Run Trajectory</h2>
-            <button
-              className="text-lg hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
-              onClick={onRefresh}
-              aria-label="Refresh simulation"
-              title="Refresh simulation"
-            >
-              ⟳
-            </button>
-        </div>
-        {sampleRun && (
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={sampleRun.balances.map((b, i) => ({
-                  year: i,
-                  balance: b.total,
-                  withdrawal: sampleRun.withdrawals[i],
-                }))}
-                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="year" />
-                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
-                <Tooltip
-                  formatter={(value: number, name: string) => {
-                    return [`${currency.format(value)}`, name];
-                  }}
-                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
-                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </section>
+        ))}
+      </div>
 
       <footer className="text-xs text-slate-600 dark:text-slate-400">
         <div>Assumptions: ...</div>

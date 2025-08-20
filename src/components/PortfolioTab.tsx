@@ -282,6 +282,12 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     })));
 
     const bands: { year: number; p10: number; p25: number; p50: number; p75: number; p90: number; }[] = [];
+    const medianRun: PortfolioRunResult = {
+      balances: [],
+      failedYear: null,
+      withdrawals: [],
+    };
+
     for (let t = 0; t <= horizon; t++) {
       const balT = sims.map(s => s.balances[t].total);
       bands.push({
@@ -292,9 +298,21 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         p75: percentile(balT, 0.75),
         p90: percentile(balT, 0.90),
       });
+
+      medianRun.balances.push({
+        total: percentile(sims.map(s => s.balances[t].total), 0.5),
+        cash: percentile(sims.map(s => s.balances[t].cash), 0.5),
+        spy: percentile(sims.map(s => s.balances[t].spy), 0.5),
+        qqq: percentile(sims.map(s => s.balances[t].qqq), 0.5),
+        bonds: percentile(sims.map(s => s.balances[t].bonds), 0.5),
+      });
+
+      if (t < horizon) {
+        medianRun.withdrawals.push(percentile(sims.map(s => s.withdrawals[t]), 0.5));
+      }
     }
     const medianFifthYearWithdrawal = horizon >= 5 ? percentile(sims.map(s => s.withdrawals[4]), 0.5) : 0;
-    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal };
+    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal, medianRun };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -302,7 +320,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const charts: Record<string, React.ReactNode> = {
     'portfolio-trajectory': (
       <Chart
-        title="Portfolio Trajectory Bands"
+        title={chartStates['portfolio-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
         minimizable={true}
@@ -327,9 +345,82 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         )}
       </Chart>
     ),
+    'portfolio-median-asset-allocation': (
+      <Chart
+        title={chartStates['portfolio-median-asset-allocation'].title}
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('portfolio-median-asset-allocation')}
+        minimizable={true}
+      >
+        {stats?.medianRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={stats.medianRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                stackOffset="expand"
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                    const pct = total === 0 ? 0 : (value / total) * 100;
+                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
+    'portfolio-median-trajectory': (
+      <Chart
+        title={chartStates['portfolio-median-trajectory'].title}
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('portfolio-median-trajectory')}
+        minimizable={true}
+      >
+        {stats?.medianRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={stats.medianRun.balances.map((b, i) => ({
+                  year: i,
+                  balance: b.total,
+                  withdrawal: stats.medianRun.withdrawals[i],
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    return [`${currency.format(value)}`, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
     'portfolio-asset-allocation': (
       <Chart
-        title="Sample Run Asset Allocation"
+        title={chartStates['portfolio-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
         minimizable={true}
@@ -365,7 +456,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     ),
     'portfolio-sample': (
       <Chart
-        title="Sample Run Trajectory"
+        title={chartStates['portfolio-sample'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
         minimizable={true}
@@ -400,6 +491,80 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         )}
       </Chart>
     ),
+    ...[2, 3, 4, 5].reduce((acc, i) => {
+      const sampleRun = sims[i - 1];
+      if (!sampleRun) return acc;
+      acc[`portfolio-sample-${i}-asset-allocation`] = (
+        <Chart
+          title={chartStates[`portfolio-sample-${i}-asset-allocation`].title}
+          onRefresh={onRefresh}
+          onMinimize={() => toggleMinimize(`portfolio-sample-${i}-asset-allocation`)}
+          minimizable={true}
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                stackOffset="expand"
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                    const pct = total === 0 ? 0 : (value / total) * 100;
+                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Chart>
+      );
+      acc[`portfolio-sample-${i}-trajectory`] = (
+        <Chart
+          title={chartStates[`portfolio-sample-${i}-trajectory`].title}
+          onRefresh={onRefresh}
+          onMinimize={() => toggleMinimize(`portfolio-sample-${i}-trajectory`)}
+          minimizable={true}
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={sampleRun.balances.map((b, i) => ({
+                  year: i,
+                  balance: b.total,
+                  withdrawal: sampleRun.withdrawals[i],
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    return [`${currency.format(value)}`, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Chart>
+      );
+      return acc;
+    }, {} as Record<string, React.ReactNode>),
   };
 
   return (

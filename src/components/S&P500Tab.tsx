@@ -6,6 +6,7 @@ import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
+import MinimizedChartsBar from "./MinimizedChartsBar";
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon
@@ -349,10 +350,21 @@ const SPTab: React.FC<SPTabProps> = ({
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500 total return, 1946–2025</div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        {chartOrder.map(chartId => (
+      <div className="grid md:grid-cols-3 gap-4 auto-rows-fr">
+        {chartOrder.filter(id => ['sp500-inputs', 'sp500-sim-mode', 'sp500-results'].includes(id)).map(chartId => (
           !chartStates[chartId].minimized &&
-          <div key={chartId} className={chartId === 'sp500-trajectory' || chartId === 'sp500-sample' ? 'md:col-span-3' : ''}>
+          <div key={chartId}>
+            {charts[chartId]}
+          </div>
+        ))}
+      </div>
+
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+
+      <div className="space-y-6">
+        {chartOrder.filter(id => !['sp500-inputs', 'sp500-sim-mode', 'sp500-results'].includes(id)).map(chartId => (
+          !chartStates[chartId].minimized &&
+          <div key={chartId}>
             {charts[chartId]}
           </div>
         ))}

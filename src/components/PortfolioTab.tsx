@@ -8,6 +8,7 @@ import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
+import MinimizedChartsBar from "./MinimizedChartsBar";
 
 // ... (imports)
 
@@ -557,14 +558,21 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        {chartOrder.map(chartId => (
+      <div className="grid md:grid-cols-3 gap-4 auto-rows-fr">
+        {chartOrder.filter(id => ['portfolio-inputs', 'portfolio-sim-settings', 'portfolio-results'].includes(id)).map(chartId => (
           !chartStates[chartId].minimized &&
-          <div key={chartId} className={
-            chartId === 'portfolio-trajectory' ||
-            chartId === 'portfolio-asset-allocation' ||
-            chartId === 'portfolio-sample' ? 'md:col-span-3' : ''
-          }>
+          <div key={chartId}>
+            {charts[chartId]}
+          </div>
+        ))}
+      </div>
+
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+
+      <div className="space-y-6">
+        {chartOrder.filter(id => !['portfolio-inputs', 'portfolio-sim-settings', 'portfolio-results'].includes(id)).map(chartId => (
+          !chartStates[chartId].minimized &&
+          <div key={chartId}>
             {charts[chartId]}
           </div>
         ))}

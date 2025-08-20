@@ -10,7 +10,7 @@ interface ChartProps {
 
 const Chart: React.FC<ChartProps> = ({ title, onRefresh, onMinimize, children, minimizable }) => {
   return (
-    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 h-full">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold mb-2">{title}</h2>
         <div className="flex items-center">

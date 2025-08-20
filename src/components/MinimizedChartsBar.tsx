@@ -15,7 +15,7 @@ const MinimizedChartsBar: React.FC<MinimizedChartsBarProps> = ({ chartStates, on
 
   return (
     <div className="flex flex-wrap gap-2 mb-4">
-      <h3 className="text-sm font-semibold self-center">Minimized:</h3>
+      <h3 className="text-sm font-semibold self-center">Charts:</h3>
       {minimizedCharts.map(([id, chart]) => (
         <button
           key={id}

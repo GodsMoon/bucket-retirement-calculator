@@ -277,8 +277,6 @@ export default function App() {
           onTabChange={setActiveTab}
         />
 
-        <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
-
         {activeTab === 'sp500' && (
           <SPTab
             startBalance={startBalance}

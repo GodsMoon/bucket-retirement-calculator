@@ -88,6 +88,8 @@ export function simulateGuytonKlinger(
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[],
   guardrailUpper: number,
   guardrailLower: number,
   cutPercentage: number,

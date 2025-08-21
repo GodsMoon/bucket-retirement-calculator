@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { SP500_TOTAL_RETURNS } from "../data/returns";
+import { INFLATION_RATES } from "../data/inflation";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
@@ -13,7 +14,9 @@ function simulatePath(
   startBalance: number,
   initialWithdrawalRate: number, // e.g., 0.04
   inflationRate: number, // constant inflation for inflation-adjusted withdrawals
-  inflationAdjust: boolean
+  inflationAdjust: boolean,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[]
 ): RunResult {
   const horizon = returns.length;
   const balances: number[] = new Array(horizon + 1).fill(0);
@@ -23,7 +26,8 @@ function simulatePath(
   balances[0] = bal;
   let failedYear: number | null = null;
   for (let y = 0; y < horizon; y++) {
-    const withdrawal = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
+    const currentInflation = useHistoricalInflation ? historicalInflationData[y] : inflationRate;
+    const withdrawal = inflationAdjust ? baseWithdrawal * Math.pow(1 + currentInflation, y) : baseWithdrawal;
     withdrawals[y] = withdrawal;
     bal = bal - withdrawal;
     if (bal <= 0 && failedYear === null) {
@@ -52,6 +56,7 @@ interface SPTabProps {
   initialWithdrawalAmount: number;
   isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
+  useHistoricalInflation: boolean;
   inflationRate: number;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
   numRuns: number;
@@ -73,6 +78,7 @@ const SPTab: React.FC<SPTabProps> = ({
   initialWithdrawalAmount,
   isInitialAmountLocked,
   inflationAdjust,
+  useHistoricalInflation,
   inflationRate,
   mode,
   numRuns,
@@ -115,12 +121,13 @@ const SPTab: React.FC<SPTabProps> = ({
         seq = bootstrapSample(multipliers, horizon);
       }
       if (seq.length > 0) {
-        runs.push(simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust));
+        const historicalInflationData = INFLATION_RATES.map(d => d.inflationPct / 100);
+        runs.push(simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust, useHistoricalInflation, historicalInflationData));
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, startYear, refreshCounter]);
+  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, useHistoricalInflation, startYear, refreshCounter]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;

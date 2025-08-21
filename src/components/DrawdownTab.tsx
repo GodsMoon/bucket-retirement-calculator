@@ -23,6 +23,7 @@ import {
   simulateFixedPercentage,
   simulateCapeBased,
 } from "../lib/simulation";
+import { INFLATION_RATES } from "../data/inflation";
 
 // ... (imports)
 
@@ -40,6 +41,7 @@ interface DrawdownTabProps {
   initialWithdrawalAmount: number;
   isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
+  useHistoricalInflation: boolean;
   inflationRate: number;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
   numRuns: number;
@@ -68,6 +70,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   initialWithdrawalAmount,
   isInitialAmountLocked,
   inflationAdjust,
+  useHistoricalInflation,
   inflationRate,
   mode,
   numRuns,

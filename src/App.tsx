@@ -3,6 +3,7 @@ import { usePersistentState } from "./hooks/usePersistentState";
 import { useMemo } from "react";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "./data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "./data/bonds";
+import { INFLATION_RATES } from "./data/inflation";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
@@ -59,6 +60,7 @@ export default function App() {
     initialWithdrawalAmount: Math.round(1_000_000 * (4 / 100)),
     isFirstWithdrawLocked: false,
     inflationAdjust: true,
+    useHistoricalInflation: false,
     inflationRate: 0.02,
     mode: "actual-seq" as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap",
     numRuns: 1000,
@@ -94,6 +96,7 @@ export default function App() {
   const [initialWithdrawalAmount, setInitialWithdrawalAmount] = useState(initialProfile.initialWithdrawalAmount);
   const [isFirstWithdrawLocked, setIsInitialAmountLocked] = useState(initialProfile.isFirstWithdrawLocked);
   const [inflationAdjust, setInflationAdjust] = useState(initialProfile.inflationAdjust);
+  const [useHistoricalInflation, setUseHistoricalInflation] = useState(initialProfile.useHistoricalInflation);
   const [inflationRate, setInflationRate] = useState(initialProfile.inflationRate); // 2%
   const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">(initialProfile.mode);
   const [numRuns, setNumRuns] = useState(initialProfile.numRuns);
@@ -168,6 +171,7 @@ export default function App() {
     setInitialWithdrawalAmount(data.initialWithdrawalAmount);
     setIsInitialAmountLocked(data.isFirstWithdrawLocked);
     setInflationAdjust(data.inflationAdjust);
+    setUseHistoricalInflation(data.useHistoricalInflation);
     setInflationRate(data.inflationRate);
     setMode(data.mode);
     setNumRuns(data.numRuns);
@@ -206,7 +210,14 @@ export default function App() {
         setWithdrawRate(round2((newAmount / activeStartBalance) * 100));
         break;
       }
-      case 'inflationAdjust': setInflationAdjust(value as boolean); break;
+      case 'inflationAdjust':
+        setInflationAdjust(value as boolean);
+        if (value) setUseHistoricalInflation(false);
+        break;
+      case 'useHistoricalInflation':
+        setUseHistoricalInflation(value as boolean);
+        if (value) setInflationAdjust(false);
+        break;
       case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
       case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
       case 'numRuns': setNumRuns(parseFloat(value as string)); break;
@@ -229,6 +240,7 @@ export default function App() {
       initialWithdrawalAmount,
       isFirstWithdrawLocked,
       inflationAdjust,
+      useHistoricalInflation,
       inflationRate,
       mode,
       numRuns,
@@ -291,6 +303,7 @@ export default function App() {
             initialWithdrawalAmount={initialWithdrawalAmount}
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
+            useHistoricalInflation={useHistoricalInflation}
             inflationRate={inflationRate}
             mode={mode}
             numRuns={numRuns}
@@ -314,6 +327,7 @@ export default function App() {
             initialWithdrawalAmount={initialWithdrawalAmount}
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
+            useHistoricalInflation={useHistoricalInflation}
             inflationRate={inflationRate}
             mode={mode}
             numRuns={numRuns}
@@ -342,6 +356,7 @@ export default function App() {
             initialWithdrawalAmount={initialWithdrawalAmount}
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
+            useHistoricalInflation={useHistoricalInflation}
             inflationRate={inflationRate}
             mode={mode}
             numRuns={numRuns}
@@ -370,6 +385,7 @@ export default function App() {
             initialWithdrawalAmount={initialWithdrawalAmount}
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
+            useHistoricalInflation={useHistoricalInflation}
             inflationRate={inflationRate}
             mode={mode}
             numRuns={numRuns}

@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Ar
 import type { DrawdownStrategy } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
+import { INFLATION_RATES } from "../data/inflation";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
@@ -31,6 +32,8 @@ function simulatePortfolioPath(
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[],
   drawdownStrategy: DrawdownStrategy
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
@@ -46,7 +49,8 @@ function simulatePortfolioPath(
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
-    let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
+    const currentInflation = useHistoricalInflation ? historicalInflationData[y] : inflationRate;
+    let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + currentInflation, y) : baseWithdrawal;
     withdrawals[y] = withdrawalAmount;
 
     const fromCash = Math.min(withdrawalAmount, cash);
@@ -170,6 +174,7 @@ interface PortfolioTabProps {
   initialWithdrawalAmount: number;
   isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
+  useHistoricalInflation: boolean;
   inflationRate: number;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
   numRuns: number;
@@ -196,6 +201,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   initialWithdrawalAmount,
   isInitialAmountLocked,
   inflationAdjust,
+  useHistoricalInflation,
   inflationRate,
   mode,
   numRuns,
@@ -244,7 +250,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
       const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
-      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+      const historicalInflationData = INFLATION_RATES.map(d => d.inflationPct / 100);
+      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, useHistoricalInflation, historicalInflationData, drawdownStrategy));
     } else {
       // Monte Carlo modes
       for (let i = 0; i < numRuns; i++) {
@@ -261,12 +268,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
         const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
-        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+        const historicalInflationData = INFLATION_RATES.map(d => d.inflationPct / 100);
+        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, useHistoricalInflation, historicalInflationData, drawdownStrategy));
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter]);
+  }, [cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, useHistoricalInflation, drawdownStrategy, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter]);
 
 
   const stats = useMemo(() => {

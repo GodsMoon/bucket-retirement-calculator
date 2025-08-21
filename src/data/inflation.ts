@@ -72,7 +72,7 @@ export const INFLATION_RATES: { year: number; inflationPct: number }[] = [
   { year: 2014, inflationPct: 1.6 },
   { year: 2015, inflationPct: 0.1 },
   { year: 2016, inflationPct: 1.3 },
-  { year. 2017, inflationPct: 2.1 },
+  { year: 2017, inflationPct: 2.1 },
   { year: 2018, inflationPct: 2.4 },
   { year: 2019, inflationPct: 1.8 },
   { year: 2020, inflationPct: 1.2 },

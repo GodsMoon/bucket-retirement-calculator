@@ -19,6 +19,12 @@ function simulatePath(
   historicalInflationData: number[]
 ): RunResult {
   const horizon = returns.length;
+
+  let adjustedReturns = returns;
+  if (useHistoricalInflation) {
+    adjustedReturns = returns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances: number[] = new Array(horizon + 1).fill(0);
   const withdrawals: number[] = new Array(horizon).fill(0);
   let bal = startBalance;
@@ -26,8 +32,7 @@ function simulatePath(
   balances[0] = bal;
   let failedYear: number | null = null;
   for (let y = 0; y < horizon; y++) {
-    const currentInflation = useHistoricalInflation ? historicalInflationData[y] : inflationRate;
-    const withdrawal = inflationAdjust ? baseWithdrawal * Math.pow(1 + currentInflation, y) : baseWithdrawal;
+    const withdrawal = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
     withdrawals[y] = withdrawal;
     bal = bal - withdrawal;
     if (bal <= 0 && failedYear === null) {
@@ -42,7 +47,7 @@ function simulatePath(
       break;
     }
     // apply return for the year
-    bal = bal * returns[y];
+    bal = bal * adjustedReturns[y];
     balances[y + 1] = bal;
   }
   // If never failed, balances filled to end
@@ -266,12 +271,16 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
+                    <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} disabled={useHistoricalInflation} />
                     <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <input id="hist-infl" type="checkbox" checked={useHistoricalInflation} onChange={e => onParamChange('useHistoricalInflation', e.target.checked)} disabled={inflationAdjust} />
+                    <label htmlFor="hist-infl" className="text-sm">Inflation-adjust returns with historical data</label>
                 </div>
                 <label className="block text-sm">Assumed Inflation Rate
                     <div className="flex items-center mt-1">
-                        <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+                        <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} disabled={useHistoricalInflation} />
                         <span className="ml-2">%</span>
                     </div>
                 </label>

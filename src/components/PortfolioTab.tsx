@@ -36,6 +36,16 @@ function simulatePortfolioPath(
   historicalInflationData: number[],
   drawdownStrategy: DrawdownStrategy
 ): PortfolioRunResult {
+
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -49,8 +59,7 @@ function simulatePortfolioPath(
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
-    const currentInflation = useHistoricalInflation ? historicalInflationData[y] : inflationRate;
-    let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + currentInflation, y) : baseWithdrawal;
+    let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
     withdrawals[y] = withdrawalAmount;
 
     const fromCash = Math.min(withdrawalAmount, cash);
@@ -114,9 +123,9 @@ function simulatePortfolioPath(
         }
       } else if (drawdownStrategy === 'cashFirst_bestPerformer') {
         const perf = [
-          { key: 'spy', ret: spyReturns[y], bal: spy },
-          { key: 'qqq', ret: qqqReturns[y], bal: qqq },
-          { key: 'bonds', ret: bondReturns[y], bal: bonds },
+          { key: 'spy', ret: adjustedSpyReturns[y], bal: spy },
+          { key: 'qqq', ret: adjustedQqqReturns[y], bal: qqq },
+          { key: 'bonds', ret: adjustedBondReturns[y], bal: bonds },
         ].sort((a, b) => b.ret - a.ret);
         for (const p of perf) {
           if (withdrawalAmount <= 0) break;
@@ -128,9 +137,9 @@ function simulatePortfolioPath(
         }
       } else if (drawdownStrategy === 'cashFirst_worstPerformer') {
         const perf = [
-          { key: 'spy', ret: spyReturns[y], bal: spy },
-          { key: 'qqq', ret: qqqReturns[y], bal: qqq },
-          { key: 'bonds', ret: bondReturns[y], bal: bonds },
+          { key: 'spy', ret: adjustedSpyReturns[y], bal: spy },
+          { key: 'qqq', ret: adjustedQqqReturns[y], bal: qqq },
+          { key: 'bonds', ret: adjustedBondReturns[y], bal: bonds },
         ].sort((a, b) => a.ret - b.ret);
         for (const p of perf) {
           if (withdrawalAmount <= 0) break;
@@ -150,9 +159,9 @@ function simulatePortfolioPath(
       continue;
     }
 
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
@@ -625,12 +634,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
+            <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} disabled={useHistoricalInflation} />
             <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input id="hist-infl" type="checkbox" checked={useHistoricalInflation} onChange={e => onParamChange('useHistoricalInflation', e.target.checked)} disabled={inflationAdjust} />
+            <label htmlFor="hist-infl" className="text-sm">Inflation-adjust returns with historical data</label>
           </div>
           <label className="block text-sm">Assumed Inflation Rate
             <div className="flex items-center mt-1">
-              <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} disabled={useHistoricalInflation} />
               <span className="ml-2">%</span>
             </div>
           </label>

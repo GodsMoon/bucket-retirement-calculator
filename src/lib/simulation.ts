@@ -95,6 +95,15 @@ export function simulateGuytonKlinger(
   cutPercentage: number,
   raisePercentage: number
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   const guardrailTriggers: number[] = [];
@@ -144,9 +153,9 @@ export function simulateGuytonKlinger(
 
     // Apply market returns
     const portfolioBeforeGrowth = totalBeforeGrowth;
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
     const portfolioAfterGrowth = cash + spy + qqq + bonds;
     const lastYearReturn = (portfolioAfterGrowth / portfolioBeforeGrowth) - 1;
 
@@ -190,9 +199,20 @@ export function simulateFloorAndCeiling(
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[],
   floor: number,
   ceiling: number
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -254,9 +274,9 @@ export function simulateFloorAndCeiling(
     }
 
     // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
@@ -277,8 +297,19 @@ export function simulateFourPercentRuleRatchetUp(
   initialWithdrawalAmount: number,
   withdrawalRate: number,
   inflationAdjust: boolean,
-  inflationRate: number
+  inflationRate: number,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[]
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -327,9 +358,9 @@ export function simulateFourPercentRuleRatchetUp(
     }
 
     // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
@@ -366,7 +397,18 @@ export function simulateFourPercentRule(
   initialWithdrawalAmount: number,
   inflationAdjust: boolean,
   inflationRate: number,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[]
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -420,9 +462,9 @@ export function simulateFourPercentRule(
     }
 
     // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
@@ -443,7 +485,18 @@ export function simulatePrincipalProtectionRule(
   initialWithdrawalAmount: number,
   inflationAdjust: boolean,
   inflationRate: number,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[]
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -500,9 +553,9 @@ export function simulatePrincipalProtectionRule(
     }
 
     // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
@@ -521,7 +574,18 @@ export function simulateFixedPercentage(
   initialBonds: number,
   horizon: number,
   withdrawalRate: number,
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[]
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -569,9 +633,9 @@ export function simulateFixedPercentage(
     }
 
     // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
@@ -591,8 +655,19 @@ export function simulateCapeBased(
   horizon: number,
   basePercentage: number,
   capeFraction: number,
-  capeData: { [year: number]: number }
+  capeData: { [year: number]: number },
+  useHistoricalInflation: boolean,
+  historicalInflationData: number[]
 ): PortfolioRunResult {
+  let adjustedSpyReturns = spyReturns;
+  let adjustedQqqReturns = qqqReturns;
+  let adjustedBondReturns = bondReturns;
+  if (useHistoricalInflation) {
+    adjustedSpyReturns = spyReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedQqqReturns = qqqReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+    adjustedBondReturns = bondReturns.map((r, i) => r / (1 + historicalInflationData[i]));
+  }
+
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
@@ -645,9 +720,9 @@ export function simulateCapeBased(
     }
 
     // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
+    spy *= adjustedSpyReturns[y];
+    qqq *= adjustedQqqReturns[y];
+    bonds *= adjustedBondReturns[y];
 
     const totalAfterGrowth = cash + spy + qqq + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };

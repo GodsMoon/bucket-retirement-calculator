@@ -324,6 +324,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
         minimizable={true}
+        chartType={chartStates['portfolio-trajectory'].chartType}
       >
         {stats && (
           <div className="h-80">
@@ -351,6 +352,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-asset-allocation')}
         minimizable={true}
+        chartType={chartStates['portfolio-median-asset-allocation'].chartType}
       >
         {stats?.medianRun && (
           <div className="h-72">
@@ -387,6 +389,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-trajectory')}
         minimizable={true}
+        chartType={chartStates['portfolio-median-trajectory'].chartType}
       >
         {stats?.medianRun && (
           <div className="h-72">
@@ -424,6 +427,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
         minimizable={true}
+        chartType={chartStates['portfolio-asset-allocation'].chartType}
       >
         {sampleRun && (
           <div className="h-72">
@@ -460,6 +464,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
         minimizable={true}
+        chartType={chartStates['portfolio-sample'].chartType}
       >
         {sampleRun && (
           <div className="h-72">
@@ -500,6 +505,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-asset-allocation`)}
           minimizable={true}
+          chartType={chartStates[`portfolio-sample-${i}-asset-allocation`].chartType}
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -534,6 +540,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-trajectory`)}
           minimizable={true}
+          chartType={chartStates[`portfolio-sample-${i}-trajectory`].chartType}
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ChartType } from '../App';
 
 interface ChartProps {
   title: string;
@@ -6,11 +7,28 @@ interface ChartProps {
   onMinimize: () => void;
   children: React.ReactNode;
   minimizable: boolean;
+  chartType: ChartType;
 }
 
-const Chart: React.FC<ChartProps> = ({ title, onRefresh, onMinimize, children, minimizable }) => {
+const Chart: React.FC<ChartProps> = ({ title, onRefresh, onMinimize, children, minimizable, chartType }) => {
+  const baseClasses = "rounded-2xl shadow p-4 pt-2 h-full";
+  let backgroundClasses;
+  switch (chartType) {
+    case 'trajectory-bands':
+      backgroundClasses = "bg-blue-50 dark:bg-blue-900/50";
+      break;
+    case 'sample-trajectory':
+      backgroundClasses = "bg-green-50 dark:bg-green-900/50";
+      break;
+    case 'asset-allocation':
+      backgroundClasses = "bg-purple-50 dark:bg-purple-900/50";
+      break;
+    default:
+      backgroundClasses = "bg-white dark:bg-slate-800";
+  }
+
   return (
-    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full">
+    <section className={`${baseClasses} ${backgroundClasses}`}>
       <div className="flex items-top justify-between">
         <h2 className="font-semibold mb-2 pt-2">{title}</h2>
         <div className="flex items-top">

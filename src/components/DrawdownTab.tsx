@@ -724,6 +724,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-trajectory')}
         minimizable={true}
+        chartType={chartStates['drawdown-trajectory'].chartType}
       >
         {stats && (
           <div className="h-80">
@@ -751,6 +752,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-asset-allocation')}
         minimizable={true}
+        chartType={chartStates['drawdown-median-asset-allocation'].chartType}
       >
         {stats?.medianRun && (
           <div className="h-72">
@@ -787,6 +789,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-trajectory')}
         minimizable={true}
+        chartType={chartStates['drawdown-median-trajectory'].chartType}
       >
         {stats?.medianRun && (
           <div className="h-72">
@@ -824,6 +827,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
         minimizable={true}
+        chartType={chartStates['drawdown-asset-allocation'].chartType}
       >
         {sampleRun && (
           <div className="h-72">
@@ -860,6 +864,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-sample')}
         minimizable={true}
+        chartType={chartStates['drawdown-sample'].chartType}
       >
         {sampleRun && (
           <div className="h-72">
@@ -913,6 +918,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-asset-allocation`)}
           minimizable={true}
+          chartType={chartStates[`drawdown-sample-${i}-asset-allocation`].chartType}
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -947,6 +953,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-trajectory`)}
           minimizable={true}
+          chartType={chartStates[`drawdown-sample-${i}-trajectory`].chartType}
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">

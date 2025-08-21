@@ -160,6 +160,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-trajectory')}
         minimizable={true}
+        chartType="trajectory-bands"
       >
         {stats && (
           <div className="h-80">
@@ -181,21 +182,25 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         )}
       </Chart>
     ),
-    'nasdaq100-sample': (
-      <Chart
-        title="Sample Run Trajectory"
-        onRefresh={onRefresh}
-        onMinimize={() => toggleMinimize('nasdaq100-sample')}
-        minimizable={true}
-      >
-        {sampleRun && (
+    ...[...Array(5)].reduce((acc, _, i) => {
+      const sampleRun = sims[i];
+      const chartId = `nasdaq100-sample${i > 0 ? `-${i + 1}` : ''}`;
+      if (!sampleRun) return acc;
+      acc[chartId] = (
+        <Chart
+          title={chartStates[chartId].title}
+          onRefresh={onRefresh}
+          onMinimize={() => toggleMinimize(chartId)}
+          minimizable={true}
+          chartType="sample-trajectory"
+        >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={sampleRun.balances.map((b, i) => ({
-                  year: i,
+                data={sampleRun.balances.map((b, j) => ({
+                  year: j,
                   balance: b,
-                  withdrawal: sampleRun.withdrawals[i],
+                  withdrawal: sampleRun.withdrawals[j],
                 }))}
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -215,9 +220,10 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
               </LineChart>
             </ResponsiveContainer>
           </div>
-        )}
-      </Chart>
-    ),
+        </Chart>
+      );
+      return acc;
+    }, {} as Record<string, React.ReactNode>),
   };
 
   return (

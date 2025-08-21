@@ -9,6 +9,23 @@ import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // ... (imports)
 
@@ -535,9 +552,31 @@ interface DrawdownTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  setChartOrder: (newOrder: string[]) => void;
 }
 
 import { CAPE_DATA } from "../data/cape";
+
+const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} >
+      {React.cloneElement(children as React.ReactElement, { dragHandleProps: listeners })}
+    </div>
+  );
+};
 
 const DrawdownTab: React.FC<DrawdownTabProps> = ({
   drawdownWithdrawalStrategy,
@@ -563,6 +602,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  setChartOrder,
+  setChartOrder,
 }) => {
   const strategy = drawdownWithdrawalStrategy;
   const [guytonKlingerParams, setGuytonKlingerParams] = React.useState({
@@ -584,6 +625,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   });
 
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = chartOrder.indexOf(active.id as string);
+      const newIndex = chartOrder.indexOf(over.id as string);
+      setChartOrder(arrayMove(chartOrder, oldIndex, newIndex));
+    }
+  }
 
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
@@ -1206,14 +1263,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
-      <div className="space-y-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={chartOrder} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6">
+            {chartOrder.map(chartId => (
+              !chartStates[chartId].minimized &&
+              <SortableChart key={chartId} id={chartId}>
+                {charts[chartId]}
+              </SortableChart>
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
         <h2 className="font-semibold mb-2">Strategy Explainers</h2>

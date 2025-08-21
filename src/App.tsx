@@ -263,6 +263,10 @@ export default function App() {
     setRefreshCounter(prev => prev + 1);
   };
 
+  const handleSetChartOrder = (newOrder: string[]) => {
+    setChartOrder(prev => ({ ...prev, [activeTab]: newOrder }));
+  };
+
   return (
     <div className={darkMode ? "dark" : ""}>
       <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 p-6">
@@ -302,6 +306,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.sp500}
+            setChartOrder={handleSetChartOrder}
           />
         )}
 
@@ -325,6 +330,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.nasdaq100}
+            setChartOrder={handleSetChartOrder}
           />
         )}
 
@@ -353,6 +359,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.portfolio}
+            setChartOrder={handleSetChartOrder}
           />
         )}
 
@@ -381,6 +388,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.drawdown}
+            setChartOrder={handleSetChartOrder}
           />
         )}
         </div>

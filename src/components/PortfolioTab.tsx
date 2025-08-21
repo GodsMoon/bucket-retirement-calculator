@@ -158,6 +158,24 @@ function simulatePortfolioPath(
 }
 
 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 interface PortfolioTabProps {
   startBalance: number;
   cash: number;
@@ -182,7 +200,29 @@ interface PortfolioTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  setChartOrder: (newOrder: string[]) => void;
 }
+
+const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} >
+      {React.cloneElement(children as React.ReactElement, { dragHandleProps: listeners })}
+    </div>
+  );
+};
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
   startBalance,
@@ -208,8 +248,25 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  setChartOrder,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = chartOrder.indexOf(active.id as string);
+      const newIndex = chartOrder.indexOf(over.id as string);
+      setChartOrder(arrayMove(chartOrder, oldIndex, newIndex));
+    }
+  }
 
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
@@ -731,14 +788,23 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
-      <div className="space-y-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
+      <DndContext
+        sensors={useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={chartOrder} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6">
+            {chartOrder.map((chartId: string) => (
+              !chartStates[chartId].minimized && (
+                <SortableChart key={chartId} id={chartId}>
+                  {charts[chartId]}
+                </SortableChart>
+              )
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <footer className="text-xs text-slate-600 dark:text-slate-400">
         <div>Assumptions: ...</div>

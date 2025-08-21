@@ -7,6 +7,23 @@ import CurrencyInput from "./CurrencyInput";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon
@@ -64,7 +81,29 @@ interface SPTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  setChartOrder: (newOrder: string[]) => void;
 }
+
+const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} >
+      {React.cloneElement(children as React.ReactElement, { dragHandleProps: listeners })}
+    </div>
+  );
+};
 
 const SPTab: React.FC<SPTabProps> = ({
   startBalance,
@@ -85,9 +124,27 @@ const SPTab: React.FC<SPTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  setChartOrder,
+  setChartOrder,
 }) => {
   const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = chartOrder.indexOf(active.id as string);
+      const newIndex = chartOrder.indexOf(over.id as string);
+      setChartOrder(arrayMove(chartOrder, oldIndex, newIndex));
+    }
+  }
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
@@ -357,14 +414,22 @@ const SPTab: React.FC<SPTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
-      <div className="space-y-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={chartOrder} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6">
+            {chartOrder.map(chartId => (
+              !chartStates[chartId].minimized &&
+              <SortableChart key={chartId} id={chartId}>
+                {charts[chartId]}
+              </SortableChart>
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <footer className="text-xs text-slate-600 dark:text-slate-400">
         <div>Assumptions: 100% SPY proxy via S&P 500 total return series; withdrawals occur at the start of each year; returns applied end-of-year; no taxes/fees. "Random shuffle" preserves the empirical distribution but breaks temporal clusters; "Bootstrap" samples years with replacement (classic Monte Carlo). For inflation- adjusted 4% rule, the withdrawal is 4% of initial and then grown by the chosen inflation rate.</div>

@@ -590,6 +590,18 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             </select>
           </label>
 
+          {strategy === 'fourPercentRule' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font mb-2">Withdraw 4% of starting porfolio and adjust for inflation each year.</h3>
+            </div>
+          )}
+
+          {strategy === 'fourPercentRuleUpwardReset' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font mb-2">Same as 4%, but if the portfolio grows, reset withdrawals to 4% of the new balance. Spending never goes down—only holds steady or resets upward—providing a growing income when markets rise while protecting against cuts in down years.</h3>
+            </div>
+          )}
+
           {strategy === 'guytonKlinger' && (
             <div className="text-sm border-t pt-2">
               <h3 className="font-semibold mb-2">Guyton-Klinger Parameters</h3>

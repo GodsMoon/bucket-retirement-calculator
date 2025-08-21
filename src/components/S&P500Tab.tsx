@@ -64,6 +64,7 @@ interface SPTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  activeTab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown';
 }
 
 const SPTab: React.FC<SPTabProps> = ({
@@ -85,6 +86,7 @@ const SPTab: React.FC<SPTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  activeTab,
 }) => {
   const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -357,7 +359,7 @@ const SPTab: React.FC<SPTabProps> = ({
             </div>
         </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab={activeTab} />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

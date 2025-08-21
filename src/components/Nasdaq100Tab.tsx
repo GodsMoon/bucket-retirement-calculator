@@ -64,6 +64,7 @@ interface NasdaqTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  activeTab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown';
 }
 
 const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
@@ -85,6 +86,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  activeTab,
 }) => {
   const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -357,7 +359,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
             </div>
         </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab={activeTab} />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

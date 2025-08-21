@@ -182,6 +182,7 @@ interface PortfolioTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  activeTab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown';
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -208,6 +209,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  activeTab,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
@@ -736,7 +738,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         </div>
       </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab={activeTab} />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

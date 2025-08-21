@@ -305,6 +305,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.sp500}
+            activeTab={activeTab}
           />
         )}
 
@@ -328,6 +329,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.nasdaq100}
+            activeTab={activeTab}
           />
         )}
 
@@ -356,6 +358,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.portfolio}
+            activeTab={activeTab}
           />
         )}
 
@@ -384,6 +387,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.drawdown}
+            activeTab={activeTab}
           />
         )}
         </div>

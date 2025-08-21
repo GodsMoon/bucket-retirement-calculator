@@ -535,6 +535,7 @@ interface DrawdownTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  activeTab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown';
 }
 
 import { CAPE_DATA } from "../data/cape";
@@ -563,6 +564,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  activeTab,
 }) => {
   const strategy = drawdownWithdrawalStrategy;
   const [guytonKlingerParams, setGuytonKlingerParams] = React.useState({
@@ -1211,7 +1213,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         </div>
       </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab={activeTab} />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

@@ -4,10 +4,11 @@ import type { ChartState, ChartType } from '../App';
 interface MinimizedChartsBarProps {
   chartStates: Record<string, ChartState>;
   onRestore: (chartId: string) => void;
+  activeTab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown';
 }
 
-const MinimizedChartsBar: React.FC<MinimizedChartsBarProps> = ({ chartStates, onRestore }) => {
-  const minimizedCharts = Object.entries(chartStates).filter(([, state]) => state.minimized);
+const MinimizedChartsBar: React.FC<MinimizedChartsBarProps> = ({ chartStates, onRestore, activeTab }) => {
+  const minimizedCharts = Object.entries(chartStates).filter(([, state]) => state.minimized && state.tab === activeTab);
 
   if (minimizedCharts.length === 0) {
     return null;

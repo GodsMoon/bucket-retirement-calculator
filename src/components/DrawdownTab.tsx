@@ -8,507 +8,24 @@ import Chart from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
-import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import {
+  pctToMult,
+  bootstrapSample,
+  shuffle,
+  percentile,
+  calculateDrawdownStats,
+  type PortfolioRunResult,
+  simulateGuytonKlinger,
+  simulateFloorAndCeiling,
+  simulateFourPercentRuleRatchetUp,
+  simulateFourPercentRule,
+  simulatePrincipalProtectionRule,
+  simulateFixedPercentage,
+  simulateCapeBased,
+} from "../lib/simulation";
 
 // ... (imports)
 
-// Custom RunResult for portfolio simulation
-// Custom RunResult for portfolio simulation
-type PortfolioRunResult = {
-  balances: { total: number; cash: number; spy: number; qqq: number; bonds: number }[];
-  withdrawals: number[];
-  failedYear: number | null;
-  guardrailTriggers: number[];
-};
-
-function simulateGuytonKlinger(
-  spyReturns: number[],
-  qqqReturns: number[],
-  bondReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  initialBonds: number,
-  horizon: number,
-  initialWithdrawalRate: number,
-  inflationRate: number,
-  inflationAdjust: boolean,
-  guardrailUpper: number,
-  guardrailLower: number,
-  cutPercentage: number,
-  raisePercentage: number
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals: number[] = new Array(horizon).fill(0);
-  const guardrailTriggers: number[] = [];
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
-  let withdrawalAmount = startBalance * initialWithdrawalRate;
-
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
-  let failedYear: number | null = null;
-
-  for (let y = 0; y < horizon; y++) {
-    withdrawals[y] = withdrawalAmount;
-
-    // Drawdown from cash first
-    const fromCash = Math.min(withdrawalAmount, cash);
-    cash -= fromCash;
-    let remainingWithdrawal = withdrawalAmount - fromCash;
-
-    if (remainingWithdrawal > 0) {
-      const fromSpy = Math.min(remainingWithdrawal, spy);
-      spy -= fromSpy;
-      remainingWithdrawal -= fromSpy;
-
-      if (remainingWithdrawal > 0) {
-        const fromQqq = Math.min(remainingWithdrawal, qqq);
-        qqq -= fromQqq;
-        remainingWithdrawal -= fromQqq;
-      }
-
-      if (remainingWithdrawal > 0) {
-        const fromBonds = Math.min(remainingWithdrawal, bonds);
-        bonds -= fromBonds;
-      }
-    }
-
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
-      }
-      break;
-    }
-
-    // Apply market returns
-    const portfolioBeforeGrowth = totalBeforeGrowth;
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
-    const portfolioAfterGrowth = cash + spy + qqq + bonds;
-    const lastYearReturn = (portfolioAfterGrowth / portfolioBeforeGrowth) - 1;
-
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
-
-    // Determine next year's withdrawal amount
-    let nextWithdrawalAmount = withdrawalAmount;
-
-    // Inflation adjustment
-    if (inflationAdjust && lastYearReturn >= 0) {
-      nextWithdrawalAmount *= (1 + inflationRate);
-    }
-
-    // Guardrail adjustments
-    const currentWithdrawalRate = nextWithdrawalAmount / totalAfterGrowth;
-    if (y < horizon - 15) { // Longevity rule
-      if (currentWithdrawalRate > initialWithdrawalRate * (1 + guardrailLower)) {
-        nextWithdrawalAmount *= (1 - cutPercentage);
-        guardrailTriggers.push(y + 1);
-      } else if (currentWithdrawalRate < initialWithdrawalRate * (1 - guardrailUpper)) {
-        nextWithdrawalAmount *= (1 + raisePercentage);
-        guardrailTriggers.push(y + 1);
-      }
-    }
-    withdrawalAmount = nextWithdrawalAmount;
-  }
-
-  return { balances, withdrawals, failedYear, guardrailTriggers };
-}
-
-function simulateFloorAndCeiling(
-  spyReturns: number[],
-  qqqReturns: number[],
-  bondReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  initialBonds: number,
-  horizon: number,
-  initialWithdrawalRate: number,
-  inflationRate: number,
-  inflationAdjust: boolean,
-  floor: number,
-  ceiling: number
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals: number[] = new Array(horizon).fill(0);
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
-  const initialWithdrawalAmount = startBalance * initialWithdrawalRate;
-  let withdrawalAmount = initialWithdrawalAmount;
-
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
-  let failedYear: number | null = null;
-
-  for (let y = 0; y < horizon; y++) {
-    // Determine withdrawal amount
-    let currentWithdrawal = balances[y].total * initialWithdrawalRate;
-    const floorAmount = initialWithdrawalAmount * (1 - floor);
-    const ceilingAmount = initialWithdrawalAmount * (1 + ceiling);
-
-    currentWithdrawal = Math.max(currentWithdrawal, floorAmount);
-    currentWithdrawal = Math.min(currentWithdrawal, ceilingAmount);
-
-    if (inflationAdjust) {
-      currentWithdrawal *= Math.pow(1 + inflationRate, y);
-    }
-
-    withdrawalAmount = currentWithdrawal;
-    withdrawals[y] = withdrawalAmount;
-
-    // Drawdown from cash first
-    const fromCash = Math.min(withdrawalAmount, cash);
-    cash -= fromCash;
-    let remainingWithdrawal = withdrawalAmount - fromCash;
-
-    if (remainingWithdrawal > 0) {
-      const fromSpy = Math.min(remainingWithdrawal, spy);
-      spy -= fromSpy;
-      remainingWithdrawal -= fromSpy;
-
-      if (remainingWithdrawal > 0) {
-        const fromQqq = Math.min(remainingWithdrawal, qqq);
-        qqq -= fromQqq;
-        remainingWithdrawal -= fromQqq;
-      }
-
-      if (remainingWithdrawal > 0) {
-        const fromBonds = Math.min(remainingWithdrawal, bonds);
-        bonds -= fromBonds;
-      }
-    }
-
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
-      }
-      break;
-    }
-
-    // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
-
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
-  }
-
-  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
-}
-
-function simulateFourPercentRule(
-  spyReturns: number[],
-  qqqReturns: number[],
-  bondReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  initialBonds: number,
-  horizon: number,
-  initialWithdrawalAmount: number,
-  inflationAdjust: boolean,
-  inflationRate: number,
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals: number[] = new Array(horizon).fill(0);
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
-
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
-  let failedYear: number | null = null;
-
-  let withdrawalAmount = initialWithdrawalAmount;
-
-  for (let y = 0; y < horizon; y++) {
-    const currentWithdrawal = withdrawalAmount;
-    withdrawals[y] = currentWithdrawal;
-
-    if (inflationAdjust) {
-      withdrawalAmount *= (1 + inflationRate);
-    }
-
-    // Drawdown from cash first
-    const fromCash = Math.min(currentWithdrawal, cash);
-    cash -= fromCash;
-    let remainingWithdrawal = currentWithdrawal - fromCash;
-
-    if (remainingWithdrawal > 0) {
-      const fromSpy = Math.min(remainingWithdrawal, spy);
-      spy -= fromSpy;
-      remainingWithdrawal -= fromSpy;
-
-      if (remainingWithdrawal > 0) {
-        const fromQqq = Math.min(remainingWithdrawal, qqq);
-        qqq -= fromQqq;
-        remainingWithdrawal -= fromQqq;
-      }
-
-      if (remainingWithdrawal > 0) {
-        const fromBonds = Math.min(remainingWithdrawal, bonds);
-        bonds -= fromBonds;
-      }
-    }
-
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
-      }
-      break;
-    }
-
-    // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
-
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
-  }
-
-  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
-}
-
-function simulatePrincipalProtectionRule(
-  spyReturns: number[],
-  qqqReturns: number[],
-  bondReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  initialBonds: number,
-  horizon: number,
-  initialWithdrawalAmount: number,
-  inflationAdjust: boolean,
-  inflationRate: number,
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals: number[] = new Array(horizon).fill(0);
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
-
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
-  let failedYear: number | null = null;
-
-  let withdrawalAmount = initialWithdrawalAmount;
-
-  for (let y = 0; y < horizon; y++) {
-    let currentWithdrawal = 0;
-    if (balances[y].total >= startBalance) {
-      currentWithdrawal = withdrawalAmount;
-      if (inflationAdjust) {
-        withdrawalAmount *= (1 + inflationRate);
-      }
-    }
-
-    withdrawals[y] = currentWithdrawal;
-
-    // Drawdown from cash first
-    const fromCash = Math.min(currentWithdrawal, cash);
-    cash -= fromCash;
-    let remainingWithdrawal = currentWithdrawal - fromCash;
-
-    if (remainingWithdrawal > 0) {
-      const fromSpy = Math.min(remainingWithdrawal, spy);
-      spy -= fromSpy;
-      remainingWithdrawal -= fromSpy;
-
-      if (remainingWithdrawal > 0) {
-        const fromQqq = Math.min(remainingWithdrawal, qqq);
-        qqq -= fromQqq;
-        remainingWithdrawal -= fromQqq;
-      }
-
-      if (remainingWithdrawal > 0) {
-        const fromBonds = Math.min(remainingWithdrawal, bonds);
-        bonds -= fromBonds;
-      }
-    }
-
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
-      }
-      break;
-    }
-
-    // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
-
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
-  }
-
-  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
-}
-
-function simulateFixedPercentage(
-  spyReturns: number[],
-  qqqReturns: number[],
-  bondReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  initialBonds: number,
-  horizon: number,
-  withdrawalRate: number,
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals: number[] = new Array(horizon).fill(0);
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
-
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
-  let failedYear: number | null = null;
-
-  for (let y = 0; y < horizon; y++) {
-    const withdrawalAmount = balances[y].total * withdrawalRate;
-    withdrawals[y] = withdrawalAmount;
-
-    // Drawdown from cash first
-    const fromCash = Math.min(withdrawalAmount, cash);
-    cash -= fromCash;
-    let remainingWithdrawal = withdrawalAmount - fromCash;
-
-    if (remainingWithdrawal > 0) {
-      const fromSpy = Math.min(remainingWithdrawal, spy);
-      spy -= fromSpy;
-      remainingWithdrawal -= fromSpy;
-
-      if (remainingWithdrawal > 0) {
-        const fromQqq = Math.min(remainingWithdrawal, qqq);
-        qqq -= fromQqq;
-        remainingWithdrawal -= fromQqq;
-      }
-
-      if (remainingWithdrawal > 0) {
-        const fromBonds = Math.min(remainingWithdrawal, bonds);
-        bonds -= fromBonds;
-      }
-    }
-
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
-      }
-      break;
-    }
-
-    // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
-
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
-  }
-
-  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
-}
-
-function simulateCapeBased(
-  spyReturns: number[],
-  qqqReturns: number[],
-  bondReturns: number[],
-  initialCash: number,
-  initialSpy: number,
-  initialQqq: number,
-  initialBonds: number,
-  horizon: number,
-  basePercentage: number,
-  capeFraction: number,
-  capeData: { [year: number]: number }
-): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
-  const withdrawals: number[] = new Array(horizon).fill(0);
-  let cash = initialCash;
-  let spy = initialSpy;
-  let qqq = initialQqq;
-  let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
-
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
-  let failedYear: number | null = null;
-
-  for (let y = 0; y < horizon; y++) {
-    const currentYear = new Date().getFullYear() - horizon + y;
-    const cape = capeData[currentYear] || 25; // Default to 25 if no data
-    const capeYield = 1 / cape;
-    const withdrawalRate = basePercentage + capeFraction * capeYield;
-    const withdrawalAmount = balances[y].total * withdrawalRate;
-
-    withdrawals[y] = withdrawalAmount;
-
-    // Drawdown from cash first
-    const fromCash = Math.min(withdrawalAmount, cash);
-    cash -= fromCash;
-    let remainingWithdrawal = withdrawalAmount - fromCash;
-
-    if (remainingWithdrawal > 0) {
-      const fromSpy = Math.min(remainingWithdrawal, spy);
-      spy -= fromSpy;
-      remainingWithdrawal -= fromSpy;
-
-      if (remainingWithdrawal > 0) {
-        const fromQqq = Math.min(remainingWithdrawal, qqq);
-        qqq -= fromQqq;
-        remainingWithdrawal -= fromQqq;
-      }
-
-      if (remainingWithdrawal > 0) {
-        const fromBonds = Math.min(remainingWithdrawal, bonds);
-        bonds -= fromBonds;
-      }
-    }
-
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
-    if (totalBeforeGrowth <= 0 && failedYear === null) {
-      failedYear = y + 1;
-      for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
-      }
-      break;
-    }
-
-    // Apply market returns
-    spy *= spyReturns[y];
-    qqq *= qqqReturns[y];
-    bonds *= bondReturns[y];
-
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
-  }
-
-  return { balances, withdrawals, failedYear, guardrailTriggers: [] };
-}
 
 
 interface DrawdownTabProps {
@@ -630,6 +147,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       } else if (strategy === "fourPercentRule") {
         runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+      } else if (strategy === "fourPercentRuleUpwardReset") {
+        runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
       }
     } else {
       // Monte Carlo modes
@@ -659,6 +178,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         } else if (strategy === "fourPercentRule") {
           runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        } else if (strategy === "fourPercentRuleUpwardReset") {
+          runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
         }
       }
     }
@@ -1060,6 +581,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               onChange={e => onParamChange('drawdownWithdrawalStrategy', e.target.value)}
             >
               <option value="fourPercentRule">4% Rule</option>
+              <option value="fourPercentRuleUpwardReset">4% Rule – Upward Reset</option>
               <option value="guytonKlinger">Guyton-Klinger</option>
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
@@ -1067,6 +589,18 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <option value="principalProtectionRule">Principal Protection Rule</option>
             </select>
           </label>
+
+          {strategy === 'fourPercentRule' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font mb-2">Withdraw 4% of starting porfolio and adjust for inflation each year.</h3>
+            </div>
+          )}
+
+          {strategy === 'fourPercentRuleUpwardReset' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font mb-2">Same as 4%, but if the portfolio grows, reset withdrawals to 4% of the new balance. Spending never goes down—only holds steady or resets upward—providing a growing income when markets rise while protecting against cuts in down years.</h3>
+            </div>
+          )}
 
           {strategy === 'guytonKlinger' && (
             <div className="text-sm border-t pt-2">
@@ -1255,6 +789,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <div>
               <h3 className="font-semibold">4% Rule</h3>
               <p>The 4% rule is a guideline that suggests you can withdraw 4% of your portfolio's initial value in the first year of retirement. In subsequent years, you adjust the withdrawal amount for inflation. This strategy is the default for the other tabs in this tool.</p>
+            </div>
+          )}
+          {strategy === 'fourPercentRuleUpwardReset' && (
+            <div>
+              <h3 className="font-semibold">4% Rule – Upward Reset</h3>
+              <p>Start at 4%. If the portfolio grows, reset withdrawals to 4% of the new balance. Spending never goes down—only holds steady or resets upward—providing a growing income when markets rise while protecting against cuts in down years.</p>
             </div>
           )}
         </div>

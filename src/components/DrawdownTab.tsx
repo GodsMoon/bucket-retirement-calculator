@@ -4,7 +4,7 @@ import type { DrawdownStrategies } from "../App";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
-import Chart from "./Chart";
+import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
@@ -16,7 +16,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -557,7 +557,7 @@ interface DrawdownTabProps {
 
 import { CAPE_DATA } from "../data/cape";
 
-const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+const SortableChart: React.FC<{ id: string; children: React.ReactElement<ChartProps> }> = ({ id, children }) => {
   const {
     attributes,
     listeners,
@@ -573,7 +573,7 @@ const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} >
-      {React.cloneElement(children as React.ReactElement, { dragHandleProps: listeners })}
+      {React.cloneElement(children, { dragHandleProps: listeners })}
     </div>
   );
 };
@@ -602,7 +602,6 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
-  setChartOrder,
   setChartOrder,
 }) => {
   const strategy = drawdownWithdrawalStrategy;
@@ -1037,6 +1036,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     }, {} as Record<string, React.ReactNode>),
   };
 
+  const activeChartIds = useMemo(
+    () => chartOrder.filter(id => !chartStates[id].minimized && charts[id]),
+    [chartOrder, chartStates, charts]
+  );
+
   return (
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100 and 10Y Treasury total return</div>
@@ -1268,12 +1272,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={chartOrder} strategy={verticalListSortingStrategy}>
+        <SortableContext items={activeChartIds} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
-            {chartOrder.map(chartId => (
-              !chartStates[chartId].minimized &&
+            {activeChartIds.map(chartId => (
               <SortableChart key={chartId} id={chartId}>
-                {charts[chartId]}
+                {charts[chartId] as React.ReactElement<ChartProps>}
               </SortableChart>
             ))}
           </div>

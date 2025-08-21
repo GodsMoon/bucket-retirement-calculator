@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface ChartProps {
+export interface ChartProps {
   title: string;
   onRefresh?: () => void;
   onMinimize: () => void;

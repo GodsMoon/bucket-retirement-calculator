@@ -6,7 +6,7 @@ import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
-import Chart from "./Chart";
+import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 
@@ -165,7 +165,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -203,7 +203,7 @@ interface PortfolioTabProps {
   setChartOrder: (newOrder: string[]) => void;
 }
 
-const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+const SortableChart: React.FC<{ id: string; children: React.ReactElement<ChartProps> }> = ({ id, children }) => {
   const {
     attributes,
     listeners,
@@ -219,7 +219,7 @@ const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} >
-      {React.cloneElement(children as React.ReactElement, { dragHandleProps: listeners })}
+      {React.cloneElement(children, { dragHandleProps: listeners })}
     </div>
   );
 };
@@ -624,6 +624,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     }, {} as Record<string, React.ReactNode>),
   };
 
+  const activeChartIds = useMemo(
+    () => chartOrder.filter(id => !chartStates[id].minimized && charts[id]),
+    [chartOrder, chartStates, charts]
+  );
+
   return (
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
@@ -789,18 +794,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
       <DndContext
-        sensors={useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))}
+        sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={chartOrder} strategy={verticalListSortingStrategy}>
+        <SortableContext items={activeChartIds} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
-            {chartOrder.map((chartId: string) => (
-              !chartStates[chartId].minimized && (
-                <SortableChart key={chartId} id={chartId}>
-                  {charts[chartId]}
-                </SortableChart>
-              )
+            {activeChartIds.map(chartId => (
+              <SortableChart key={chartId} id={chartId}>
+                {charts[chartId] as React.ReactElement<ChartProps>}
+              </SortableChart>
             ))}
           </div>
         </SortableContext>

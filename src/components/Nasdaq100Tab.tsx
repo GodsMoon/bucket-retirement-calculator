@@ -4,7 +4,7 @@ import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
-import Chart from "./Chart";
+import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 import {
@@ -14,7 +14,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -84,7 +84,7 @@ interface NasdaqTabProps {
   setChartOrder: (newOrder: string[]) => void;
 }
 
-const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+const SortableChart: React.FC<{ id: string; children: React.ReactElement<ChartProps> }> = ({ id, children }) => {
   const {
     attributes,
     listeners,
@@ -100,7 +100,7 @@ const SortableChart: React.FC<{ id: string; children: React.ReactNode }> = ({ id
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} >
-      {React.cloneElement(children as React.ReactElement, { dragHandleProps: listeners })}
+      {React.cloneElement(children, { dragHandleProps: listeners })}
     </div>
   );
 };
@@ -124,7 +124,6 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
-  setChartOrder,
   setChartOrder,
 }) => {
   const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
@@ -277,6 +276,11 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
     ),
   };
 
+  const activeChartIds = useMemo(
+    () => chartOrder.filter(id => !chartStates[id].minimized && charts[id]),
+    [chartOrder, chartStates, charts]
+  );
+
   return (
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: NASDAQ 100 (QQQ) total return, 1986–2025</div>
@@ -419,12 +423,11 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={chartOrder} strategy={verticalListSortingStrategy}>
+        <SortableContext items={activeChartIds} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
-            {chartOrder.map(chartId => (
-              !chartStates[chartId].minimized &&
+            {activeChartIds.map(chartId => (
               <SortableChart key={chartId} id={chartId}>
-                {charts[chartId]}
+                {charts[chartId] as React.ReactElement<ChartProps>}
               </SortableChart>
             ))}
           </div>

@@ -30,7 +30,8 @@ export type DrawdownStrategies =
   | "capeBased"
   | "fixedPercentage"
   | "principalProtectionRule"
-  | "fourPercentRule";
+  | "fourPercentRule"
+  | "fourPercentRuleUpwardReset";
 
 
 export default function App() {

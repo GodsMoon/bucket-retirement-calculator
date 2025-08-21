@@ -14,7 +14,7 @@ import {
   shuffle,
   percentile,
   calculateDrawdownStats,
-  PortfolioRunResult,
+  type PortfolioRunResult,
   simulateGuytonKlinger,
   simulateFloorAndCeiling,
   simulateFourPercentRuleRatchetUp,

@@ -746,6 +746,43 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         )}
       </Chart>
     ),
+    'drawdown-median-asset-allocation': (
+      <Chart
+        title={chartStates['drawdown-median-asset-allocation'].title}
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('drawdown-median-asset-allocation')}
+        minimizable={true}
+        chartType={chartStates['drawdown-median-asset-allocation'].chartType}
+      >
+        {stats?.medianRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={stats.medianRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                stackOffset="expand"
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                    const pct = total === 0 ? 0 : (value / total) * 100;
+                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
     'drawdown-median-trajectory': (
       <Chart
         title={chartStates['drawdown-median-trajectory'].title}
@@ -779,6 +816,43 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
                 <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
+    'drawdown-asset-allocation': (
+      <Chart
+        title={chartStates['drawdown-asset-allocation'].title}
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
+        minimizable={true}
+        chartType={chartStates['drawdown-asset-allocation'].chartType}
+      >
+        {sampleRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                stackOffset="expand"
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                    const pct = total === 0 ? 0 : (value / total) * 100;
+                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#ff8042" fill="#ff8042" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
@@ -835,25 +909,59 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         )}
       </Chart>
     ),
-    ...[...Array(5)].reduce((acc, _, i) => {
-      const sampleRun = sims[i];
-      const chartId = `drawdown-sample${i > 0 ? `-${i + 1}` : ''}-trajectory`;
-      if (!sampleRun || !chartStates[chartId]) return acc;
-      acc[chartId] = (
+    ...[2, 3, 4, 5].reduce((acc, i) => {
+      const sampleRun = sims[i - 1];
+      if (!sampleRun) return acc;
+      acc[`drawdown-sample-${i}-asset-allocation`] = (
         <Chart
-          title={chartStates[chartId].title}
+          title={chartStates[`drawdown-sample-${i}-asset-allocation`].title}
           onRefresh={onRefresh}
-          onMinimize={() => toggleMinimize(chartId)}
+          onMinimize={() => toggleMinimize(`drawdown-sample-${i}-asset-allocation`)}
           minimizable={true}
-          chartType="sample-trajectory"
+          chartType={chartStates[`drawdown-sample-${i}-asset-allocation`].chartType}
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                stackOffset="expand"
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                    const pct = total === 0 ? 0 : (value / total) * 100;
+                    return `${currency.format(value)} (${pct.toFixed(1)}%)`;
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Chart>
+      );
+      acc[`drawdown-sample-${i}-trajectory`] = (
+        <Chart
+          title={chartStates[`drawdown-sample-${i}-trajectory`].title}
+          onRefresh={onRefresh}
+          onMinimize={() => toggleMinimize(`drawdown-sample-${i}-trajectory`)}
+          minimizable={true}
+          chartType={chartStates[`drawdown-sample-${i}-trajectory`].chartType}
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={sampleRun.balances.map((b, j) => ({
-                  year: j,
+                data={sampleRun.balances.map((b, i) => ({
+                  year: i,
                   balance: b.total,
-                  withdrawal: sampleRun.withdrawals[j],
+                  withdrawal: sampleRun.withdrawals[i],
                 }))}
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >

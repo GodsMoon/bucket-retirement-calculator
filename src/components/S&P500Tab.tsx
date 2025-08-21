@@ -160,7 +160,7 @@ const SPTab: React.FC<SPTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-trajectory')}
         minimizable={true}
-        chartType="trajectory-bands"
+        chartType={chartStates['sp500-trajectory'].chartType}
       >
         {stats && (
           <div className="h-80">
@@ -182,25 +182,22 @@ const SPTab: React.FC<SPTabProps> = ({
         )}
       </Chart>
     ),
-    ...[...Array(5)].reduce((acc, _, i) => {
-      const sampleRun = sims[i];
-      const chartId = `sp500-sample${i > 0 ? `-${i + 1}` : ''}`;
-      if (!sampleRun) return acc;
-      acc[chartId] = (
-        <Chart
-          title={chartStates[chartId].title}
-          onRefresh={onRefresh}
-          onMinimize={() => toggleMinimize(chartId)}
-          minimizable={true}
-          chartType="sample-trajectory"
-        >
+    'sp500-sample': (
+      <Chart
+        title="Sample Run Trajectory"
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('sp500-sample')}
+        minimizable={true}
+        chartType={chartStates['sp500-sample'].chartType}
+      >
+        {sampleRun && (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={sampleRun.balances.map((b, j) => ({
-                  year: j,
+                data={sampleRun.balances.map((b, i) => ({
+                  year: i,
                   balance: b,
-                  withdrawal: sampleRun.withdrawals[j],
+                  withdrawal: sampleRun.withdrawals[i],
                 }))}
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -220,10 +217,9 @@ const SPTab: React.FC<SPTabProps> = ({
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </Chart>
-      );
-      return acc;
-    }, {} as Record<string, React.ReactNode>),
+        )}
+      </Chart>
+    ),
   };
 
   return (

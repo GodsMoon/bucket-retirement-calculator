@@ -30,6 +30,7 @@ Open the URL printed by the dev command in your browser to explore the app.
 - `npm run build` – generate a production build
 - `npm run preview` – serve the production build locally
 - `npm run lint` – run ESLint checks
+- `npm test` – run unit tests
 
 ## Data
 

@@ -355,7 +355,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
             </div>
         </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="nasdaq100" />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

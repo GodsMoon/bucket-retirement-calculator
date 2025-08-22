@@ -738,7 +738,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         </div>
       </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="drawdown" />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

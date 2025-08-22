@@ -729,7 +729,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         </div>
       </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="portfolio" />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

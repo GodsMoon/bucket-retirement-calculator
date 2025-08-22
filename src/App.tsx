@@ -267,9 +267,9 @@ export default function App() {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 p-6">
+      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 p-4 md:p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          <header className="flex items-center justify-between">
+          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h1 className="text-2xl md:text-3xl font-bold">4% Rule Tester — Monte Carlo</h1>
             <ThemeToggle darkMode={darkMode} toggleDarkMode={() => setDarkMode(prev => !prev)} />
           </header>

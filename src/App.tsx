@@ -176,7 +176,7 @@ export default function App() {
     localStorage.setItem("activeProfile", p);
   };
 
-  const handleParamChange = (param: string, value: any) => {
+  const handleParamChange = (param: string, value: unknown) => {
     switch (param) {
       case 'startBalance': setStartBalance(parseFloat(value as string)); break;
       case 'cash': setCash(parseFloat(value as string)); break;
@@ -185,10 +185,11 @@ export default function App() {
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'allocation':
         if (typeof value === 'object' && value !== null) {
-          setCash(value.cash);
-          setSpy(value.spy);
-          setQqq(value.qqq);
-          setBonds(value.bonds);
+          const allocation = value as { cash: number; spy: number; qqq: number; bonds: number };
+          setCash(allocation.cash);
+          setSpy(allocation.spy);
+          setQqq(allocation.qqq);
+          setBonds(allocation.bonds);
         }
         break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;

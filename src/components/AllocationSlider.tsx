@@ -7,7 +7,7 @@ interface AllocationSliderProps {
   spy: number;
   qqq: number;
   bonds: number;
-  onParamChange: (param: string, value: any) => void;
+  onParamChange: (param: string, value: unknown) => void;
 }
 
 const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bonds, onParamChange }) => {

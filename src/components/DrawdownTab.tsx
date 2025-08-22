@@ -46,7 +46,7 @@ interface DrawdownTabProps {
   seed: number | "";
   startYear: number;
   onRefresh: () => void;
-  onParamChange: (param: string, value: any) => void;
+  onParamChange: (param: string, value: unknown) => void;
   setIsInitialAmountLocked: (value: React.SetStateAction<boolean>) => void;
   refreshCounter: number;
   chartStates: Record<string, ChartState>;

@@ -176,7 +176,7 @@ export default function App() {
     localStorage.setItem("activeProfile", p);
   };
 
-  const handleParamChange = (param: string, value: any) => {
+  const handleParamChange = (param: string, value: unknown) => {
     switch (param) {
       case 'startBalance': setStartBalance(parseFloat(value as string)); break;
       case 'cash': setCash(parseFloat(value as string)); break;
@@ -185,10 +185,11 @@ export default function App() {
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'allocation':
         if (typeof value === 'object' && value !== null) {
-          setCash(value.cash);
-          setSpy(value.spy);
-          setQqq(value.qqq);
-          setBonds(value.bonds);
+          const alloc = value as { cash: number; spy: number; qqq: number; bonds: number };
+          setCash(alloc.cash);
+          setSpy(alloc.spy);
+          setQqq(alloc.qqq);
+          setBonds(alloc.bonds);
         }
         break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;
@@ -266,9 +267,9 @@ export default function App() {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 p-6">
+      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 p-4 md:p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          <header className="flex items-center justify-between">
+          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h1 className="text-2xl md:text-3xl font-bold">4% Rule Tester — Monte Carlo</h1>
             <ThemeToggle darkMode={darkMode} toggleDarkMode={() => setDarkMode(prev => !prev)} />
           </header>

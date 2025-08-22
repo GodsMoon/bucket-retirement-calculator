@@ -176,12 +176,13 @@ interface PortfolioTabProps {
   seed: number | "";
   startYear: number;
   onRefresh: () => void;
-  onParamChange: (param: string, value: any) => void;
+  onParamChange: (param: string, value: unknown) => void;
   setIsInitialAmountLocked: (value: React.SetStateAction<boolean>) => void;
   refreshCounter: number;
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChart: (sourceId: string, targetId: string) => void;
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -208,6 +209,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  onReorderChart,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
@@ -567,6 +569,35 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     }, {} as Record<string, React.ReactNode>),
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, chartId: string) => {
+    e.dataTransfer.setData('text/plain', chartId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain');
+    if (sourceId && sourceId !== targetId) {
+      onReorderChart(sourceId, targetId);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const renderChart = (chartId: string) => {
+    const element = charts[chartId];
+    return React.isValidElement(element)
+      ? React.cloneElement(element, {
+          dragHandleProps: {
+            draggable: true,
+            onDragStart: (e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, chartId),
+          },
+        })
+      : element;
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
@@ -733,10 +764,15 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
-          </div>
+          !chartStates[chartId].minimized && (
+            <div
+              key={chartId}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, chartId)}
+            >
+              {renderChart(chartId)}
+            </div>
+          )
         ))}
       </div>
 

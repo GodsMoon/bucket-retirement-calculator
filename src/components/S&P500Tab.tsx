@@ -64,6 +64,7 @@ interface SPTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChart: (sourceId: string, targetId: string) => void;
 }
 
 const SPTab: React.FC<SPTabProps> = ({
@@ -85,6 +86,7 @@ const SPTab: React.FC<SPTabProps> = ({
   chartStates,
   toggleMinimize,
   chartOrder,
+  onReorderChart,
 }) => {
   const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -218,6 +220,35 @@ const SPTab: React.FC<SPTabProps> = ({
         )}
       </Chart>
     ),
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, chartId: string) => {
+    e.dataTransfer.setData('text/plain', chartId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain');
+    if (sourceId && sourceId !== targetId) {
+      onReorderChart(sourceId, targetId);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const renderChart = (chartId: string) => {
+    const element = charts[chartId];
+    return React.isValidElement(element)
+      ? React.cloneElement(element, {
+          dragHandleProps: {
+            draggable: true,
+            onDragStart: (e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, chartId),
+          },
+        })
+      : element;
   };
 
   return (
@@ -359,10 +390,15 @@ const SPTab: React.FC<SPTabProps> = ({
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
-          </div>
+          !chartStates[chartId].minimized && (
+            <div
+              key={chartId}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, chartId)}
+            >
+              {renderChart(chartId)}
+            </div>
+          )
         ))}
       </div>
 

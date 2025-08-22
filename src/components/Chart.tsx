@@ -6,13 +6,25 @@ interface ChartProps {
   onMinimize: () => void;
   children: React.ReactNode;
   minimizable: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-const Chart: React.FC<ChartProps> = ({ title, onRefresh, onMinimize, children, minimizable }) => {
+const Chart: React.FC<ChartProps> = ({ title, onRefresh, onMinimize, children, minimizable, dragHandleProps }) => {
   return (
     <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full">
       <div className="flex items-top justify-between">
-        <h2 className="font-semibold mb-2 pt-2">{title}</h2>
+        <div className="flex items-center">
+          {dragHandleProps && (
+            <div
+              {...dragHandleProps}
+              className={`cursor-move mr-2 pt-2 ${dragHandleProps.className ?? ''}`}
+              aria-label="Drag to reorder"
+            >
+              ☰
+            </div>
+          )}
+          <h2 className="font-semibold mb-2 pt-2">{title}</h2>
+        </div>
         <div className="flex items-top">
           {onRefresh && (
             <button

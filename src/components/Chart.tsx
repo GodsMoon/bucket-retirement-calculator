@@ -1,6 +1,8 @@
 import React from 'react';
+import { getChartColor } from '../chartColors';
 
 interface ChartProps {
+  chartId: string;
   title: string;
   onRefresh?: () => void;
   onMinimize: () => void;
@@ -8,9 +10,10 @@ interface ChartProps {
   minimizable: boolean;
 }
 
-const Chart: React.FC<ChartProps> = ({ title, onRefresh, onMinimize, children, minimizable }) => {
+const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, children, minimizable }) => {
+  const { chart: colorClass } = getChartColor(chartId);
   return (
-    <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full">
+    <section className={`bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full border-l-4 ${colorClass}`}>
       <div className="flex items-top justify-between">
         <h2 className="font-semibold mb-2 pt-2">{title}</h2>
         <div className="flex items-top">

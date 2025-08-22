@@ -140,6 +140,19 @@ export default function App() {
     drawdown: ["drawdown-trajectory", "drawdown-median-trajectory", "drawdown-median-asset-allocation", "drawdown-asset-allocation", "drawdown-sample"],
   });
 
+  const reorderCharts = (
+    tab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown',
+    sourceId: string,
+    targetIndex: number,
+  ) => {
+    setChartOrder(prev => {
+      const order = prev[tab].filter(id => id !== sourceId);
+      const clampedIndex = Math.min(Math.max(targetIndex, 0), order.length);
+      order.splice(clampedIndex, 0, sourceId);
+      return { ...prev, [tab]: order };
+    });
+  };
+
   const toggleMinimize = (chartId: string) => {
     const newChartStates = { ...chartStates };
     newChartStates[chartId].minimized = !newChartStates[chartId].minimized;
@@ -304,6 +317,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.sp500}
+            onReorderChart={(source, index) => reorderCharts('sp500', source, index)}
           />
         )}
 
@@ -327,6 +341,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.nasdaq100}
+            onReorderChart={(source, index) => reorderCharts('nasdaq100', source, index)}
           />
         )}
 
@@ -355,6 +370,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.portfolio}
+            onReorderChart={(source, index) => reorderCharts('portfolio', source, index)}
           />
         )}
 
@@ -383,6 +399,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.drawdown}
+            onReorderChart={(source, index) => reorderCharts('drawdown', source, index)}
           />
         )}
         </div>

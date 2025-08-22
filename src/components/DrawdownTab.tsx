@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid, ReferenceDot } from "recharts";
 import type { DrawdownStrategies } from "../App";
 import AllocationSlider from "./AllocationSlider";
@@ -7,6 +7,7 @@ import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import {
   pctToMult,
@@ -52,7 +53,7 @@ interface DrawdownTabProps {
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
   chartOrder: string[];
-  onReorderChart: (sourceId: string, targetId: string) => void;
+  onReorderChart: (sourceId: string, targetIndex: number) => void;
 }
 
 import { CAPE_DATA } from "../data/cape";
@@ -502,32 +503,58 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       return acc;
     }, {} as Record<string, React.ReactNode>),
   };
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [parent] = useAutoAnimate<HTMLDivElement>();
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, chartId: string) => {
     e.dataTransfer.setData('text/plain', chartId);
     e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-    e.preventDefault();
-    const sourceId = e.dataTransfer.getData('text/plain');
-    if (sourceId && sourceId !== targetId) {
-      onReorderChart(sourceId, targetId);
+    setDraggingId(chartId);
+    const section = (e.target as HTMLElement).closest('section');
+    if (section) {
+      const clone = section.cloneNode(true) as HTMLElement;
+      clone.style.opacity = '0.5';
+      clone.style.position = 'absolute';
+      clone.style.top = '-9999px';
+      document.body.appendChild(clone);
+      const rect = section.getBoundingClientRect();
+      e.dataTransfer.setDragImage(clone, e.clientX - rect.left, e.clientY - rect.top);
+      setTimeout(() => document.body.removeChild(clone), 0);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverIndex(null);
   };
 
-  const renderChart = (chartId: string) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain');
+    if (sourceId) {
+      onReorderChart(sourceId, index);
+    }
+    setDraggingId(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOverZone = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const renderChart = (chartId: string, preview = false) => {
     const element = charts[chartId];
     return React.isValidElement(element)
       ? React.cloneElement(element, {
-          dragHandleProps: {
-            draggable: true,
-            onDragStart: (e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, chartId),
-          },
+          dragHandleProps: preview
+            ? undefined
+            : {
+                draggable: true,
+                onDragStart: (e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, chartId),
+                onDragEnd: handleDragEnd,
+              },
         })
       : element;
   };
@@ -771,18 +798,43 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
 
-      <div className="space-y-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized && (
-            <div
-              key={chartId}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, chartId)}
-            >
-              {renderChart(chartId)}
-            </div>
-          )
-        ))}
+      <div className="space-y-6" ref={parent}>
+        {(() => {
+          const visibleOrder = chartOrder.filter(id => !chartStates[id].minimized && id !== draggingId);
+          const items: React.ReactNode[] = [];
+          for (let i = 0; i <= visibleOrder.length; i++) {
+            items.push(
+              <div
+                key={`dz-${i}`}
+                onDragOver={(e) => handleDragOverZone(e, i)}
+                onDrop={(e) => handleDrop(e, i)}
+                className={
+                  draggingId
+                    ? `h-4 my-2 border-2 border-dashed rounded-md transition-colors ${
+                        dragOverIndex === i ? 'border-blue-400 bg-blue-100 dark:bg-slate-700' : 'border-transparent'
+                      }`
+                    : 'h-0 my-0'
+                }
+              />
+            );
+            if (draggingId && dragOverIndex === i) {
+              items.push(
+                <div key={`preview-${i}`} className="opacity-50 pointer-events-none">
+                  {renderChart(draggingId, true)}
+                </div>
+              );
+            }
+            const chartId = visibleOrder[i];
+            if (chartId) {
+              items.push(
+                <div key={chartId}>
+                  {renderChart(chartId)}
+                </div>
+              );
+            }
+          }
+          return items;
+        })()}
       </div>
 
       <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">

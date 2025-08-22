@@ -143,13 +143,12 @@ export default function App() {
   const reorderCharts = (
     tab: 'sp500' | 'nasdaq100' | 'portfolio' | 'drawdown',
     sourceId: string,
-    targetId: string,
+    targetIndex: number,
   ) => {
     setChartOrder(prev => {
       const order = prev[tab].filter(id => id !== sourceId);
-      const targetIndex = order.indexOf(targetId);
-      if (targetIndex === -1) return prev;
-      order.splice(targetIndex, 0, sourceId);
+      const clampedIndex = Math.min(Math.max(targetIndex, 0), order.length);
+      order.splice(clampedIndex, 0, sourceId);
       return { ...prev, [tab]: order };
     });
   };
@@ -317,7 +316,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.sp500}
-            onReorderChart={(source, target) => reorderCharts('sp500', source, target)}
+            onReorderChart={(source, index) => reorderCharts('sp500', source, index)}
           />
         )}
 
@@ -341,7 +340,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.nasdaq100}
-            onReorderChart={(source, target) => reorderCharts('nasdaq100', source, target)}
+            onReorderChart={(source, index) => reorderCharts('nasdaq100', source, index)}
           />
         )}
 
@@ -370,7 +369,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.portfolio}
-            onReorderChart={(source, target) => reorderCharts('portfolio', source, target)}
+            onReorderChart={(source, index) => reorderCharts('portfolio', source, index)}
           />
         )}
 
@@ -399,7 +398,7 @@ export default function App() {
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
             chartOrder={chartOrder.drawdown}
-            onReorderChart={(source, target) => reorderCharts('drawdown', source, target)}
+            onReorderChart={(source, index) => reorderCharts('drawdown', source, index)}
           />
         )}
         </div>

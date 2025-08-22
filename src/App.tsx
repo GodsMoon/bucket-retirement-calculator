@@ -185,11 +185,11 @@ export default function App() {
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'allocation':
         if (typeof value === 'object' && value !== null) {
-          const alloc = value as { cash: number; spy: number; qqq: number; bonds: number };
-          setCash(alloc.cash);
-          setSpy(alloc.spy);
-          setQqq(alloc.qqq);
-          setBonds(alloc.bonds);
+          const allocation = value as { cash: number; spy: number; qqq: number; bonds: number };
+          setCash(allocation.cash);
+          setSpy(allocation.spy);
+          setQqq(allocation.qqq);
+          setBonds(allocation.bonds);
         }
         break;
       case 'drawdownStrategy': setDrawdownStrategy(value as DrawdownStrategy); break;

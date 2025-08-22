@@ -355,7 +355,7 @@ const SPTab: React.FC<SPTabProps> = ({
             </div>
         </section>
 
-      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} />
+      <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="sp500" />
 
       <div className="space-y-6">
         {chartOrder.map((chartId: string) => (

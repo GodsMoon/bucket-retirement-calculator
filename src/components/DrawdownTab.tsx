@@ -83,8 +83,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 }) => {
   const strategy = drawdownWithdrawalStrategy;
   const [guytonKlingerParams, setGuytonKlingerParams] = React.useState({
-    guardrailUpper: 0.2,
-    guardrailLower: 0.2,
+    guardrailUpper: 0.06,
+    guardrailLower: 0.03,
     cutPercentage: 0.1,
     raisePercentage: 0.1,
   });
@@ -604,7 +604,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
           {strategy === 'guytonKlinger' && (
             <div className="text-sm border-t pt-2">
-              <h3 className="font-semibold mb-2">Guyton-Klinger Parameters</h3>
+              <h3 className="font-semibold mb-2">Guyton-Klinger allows for starting with a higher withdrawal rate. Around 4.5%, and ajusts bases on guardrails.</h3>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">Guardrail Lower (%)
                   <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.guardrailLower * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, guardrailLower: parseFloat(e.target.value) / 100 })} />

@@ -320,6 +320,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const charts: Record<string, React.ReactNode> = {
     'portfolio-trajectory': (
       <Chart
+        chartId="portfolio-trajectory"
         title={chartStates['portfolio-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
@@ -347,6 +348,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     ),
     'portfolio-median-asset-allocation': (
       <Chart
+        chartId="portfolio-median-asset-allocation"
         title={chartStates['portfolio-median-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-asset-allocation')}
@@ -383,6 +385,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     ),
     'portfolio-median-trajectory': (
       <Chart
+        chartId="portfolio-median-trajectory"
         title={chartStates['portfolio-median-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-trajectory')}
@@ -420,6 +423,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     ),
     'portfolio-asset-allocation': (
       <Chart
+        chartId="portfolio-asset-allocation"
         title={chartStates['portfolio-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
@@ -456,6 +460,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     ),
     'portfolio-sample': (
       <Chart
+        chartId="portfolio-sample"
         title={chartStates['portfolio-sample'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
@@ -496,6 +501,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       if (!sampleRun) return acc;
       acc[`portfolio-sample-${i}-asset-allocation`] = (
         <Chart
+          chartId={`portfolio-sample-${i}-asset-allocation`}
           title={chartStates[`portfolio-sample-${i}-asset-allocation`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-asset-allocation`)}
@@ -530,6 +536,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       );
       acc[`portfolio-sample-${i}-trajectory`] = (
         <Chart
+          chartId={`portfolio-sample-${i}-trajectory`}
           title={chartStates[`portfolio-sample-${i}-trajectory`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-trajectory`)}

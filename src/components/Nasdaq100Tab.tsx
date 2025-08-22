@@ -156,6 +156,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   const charts: Record<string, React.ReactNode> = {
     'nasdaq100-trajectory': (
       <Chart
+        chartId="nasdaq100-trajectory"
         title="Portfolio Trajectory Bands"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-trajectory')}
@@ -183,6 +184,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
     ),
     'nasdaq100-sample': (
       <Chart
+        chartId="nasdaq100-sample"
         title="Sample Run Trajectory"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-sample')}

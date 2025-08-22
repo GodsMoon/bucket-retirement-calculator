@@ -241,6 +241,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   const charts: Record<string, React.ReactNode> = {
     'drawdown-trajectory': (
       <Chart
+        chartId="drawdown-trajectory"
         title={chartStates['drawdown-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-trajectory')}
@@ -268,6 +269,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     ),
     'drawdown-median-asset-allocation': (
       <Chart
+        chartId="drawdown-median-asset-allocation"
         title={chartStates['drawdown-median-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-asset-allocation')}
@@ -304,6 +306,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     ),
     'drawdown-median-trajectory': (
       <Chart
+        chartId="drawdown-median-trajectory"
         title={chartStates['drawdown-median-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-trajectory')}
@@ -341,6 +344,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     ),
     'drawdown-asset-allocation': (
       <Chart
+        chartId="drawdown-asset-allocation"
         title={chartStates['drawdown-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
@@ -377,6 +381,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     ),
     'drawdown-sample': (
       <Chart
+        chartId="drawdown-sample"
         title={chartStates['drawdown-sample'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-sample')}
@@ -430,6 +435,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       if (!sampleRun) return acc;
       acc[`drawdown-sample-${i}-asset-allocation`] = (
         <Chart
+          chartId={`drawdown-sample-${i}-asset-allocation`}
           title={chartStates[`drawdown-sample-${i}-asset-allocation`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-asset-allocation`)}
@@ -464,6 +470,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       );
       acc[`drawdown-sample-${i}-trajectory`] = (
         <Chart
+          chartId={`drawdown-sample-${i}-trajectory`}
           title={chartStates[`drawdown-sample-${i}-trajectory`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-trajectory`)}

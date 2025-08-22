@@ -156,6 +156,7 @@ const SPTab: React.FC<SPTabProps> = ({
   const charts: Record<string, React.ReactNode> = {
     'sp500-trajectory': (
       <Chart
+        chartId="sp500-trajectory"
         title="Portfolio Trajectory Bands"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-trajectory')}
@@ -183,6 +184,7 @@ const SPTab: React.FC<SPTabProps> = ({
     ),
     'sp500-sample': (
       <Chart
+        chartId="sp500-sample"
         title="Sample Run Trajectory"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-sample')}

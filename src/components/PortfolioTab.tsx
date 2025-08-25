@@ -253,12 +253,12 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
-        bitcoin: bitcoinReturnMultiplier(year),
+        bitcoin: bitcoin > 0 ? bitcoinReturnMultiplier(year) : 1.0,
         bonds: bondReturnsMap.get(year)!,
       });
     }
     return map;
-  }, [years]);
+  }, [years, bitcoin]);
 
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];

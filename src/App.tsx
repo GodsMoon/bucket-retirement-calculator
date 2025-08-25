@@ -52,6 +52,7 @@ export default function App() {
     cash: 100_000,
     spy: 450_000,
     qqq: 450_000,
+    bitcoin: 0,
     bonds: 0,
     drawdownStrategy: "cashFirst_spyThenQqq" as DrawdownStrategy,
     drawdownWithdrawalStrategy: "fourPercentRule" as DrawdownStrategies,
@@ -85,8 +86,9 @@ export default function App() {
   const [cash, setCash] = useState(initialProfile.cash);
   const [spy, setSpy] = useState(initialProfile.spy);
   const [qqq, setQqq] = useState(initialProfile.qqq);
+  const [bitcoin, setBitcoin] = useState(initialProfile.bitcoin);
   const [bonds, setBonds] = useState(initialProfile.bonds);
-  const portfolioStartBalance = useMemo(() => cash + spy + qqq + bonds, [cash, spy, qqq, bonds]);
+  const portfolioStartBalance = useMemo(() => cash + spy + qqq + bitcoin + bonds, [cash, spy, qqq, bitcoin, bonds]);
   const [startBalance, setStartBalance] = useState(initialProfile.startBalance);
   const [drawdownStrategy, setDrawdownStrategy] = useState<DrawdownStrategy>(initialProfile.drawdownStrategy);
   const [drawdownWithdrawalStrategy, setDrawdownWithdrawalStrategy] = useState<DrawdownStrategies>(initialProfile.drawdownWithdrawalStrategy);
@@ -167,6 +169,7 @@ export default function App() {
     setCash(data.cash);
     setSpy(data.spy);
     setQqq(data.qqq);
+    setBitcoin(data.bitcoin);
     setBonds(data.bonds);
     setStartBalance(data.startBalance);
     setDrawdownStrategy(data.drawdownStrategy);
@@ -190,13 +193,15 @@ export default function App() {
       case 'cash': setCash(parseFloat(value as string)); break;
       case 'spy': setSpy(parseFloat(value as string)); break;
       case 'qqq': setQqq(parseFloat(value as string)); break;
+      case 'bitcoin': setBitcoin(parseFloat(value as string)); break;
       case 'bonds': setBonds(parseFloat(value as string)); break;
       case 'allocation':
         if (typeof value === 'object' && value !== null) {
-          const allocation = value as { cash: number; spy: number; qqq: number; bonds: number };
+          const allocation = value as { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number };
           setCash(allocation.cash);
           setSpy(allocation.spy);
           setQqq(allocation.qqq);
+          setBitcoin(allocation.bitcoin);
           setBonds(allocation.bonds);
         }
         break;
@@ -230,6 +235,7 @@ export default function App() {
       cash,
       spy,
       qqq,
+      bitcoin,
       bonds,
       drawdownStrategy,
       drawdownWithdrawalStrategy,
@@ -246,7 +252,7 @@ export default function App() {
     };
     localStorage.setItem(`profile_${profile}`, JSON.stringify(data));
     localStorage.setItem("activeProfile", profile);
-  }, [profile, startBalance, cash, spy, qqq, bonds, drawdownStrategy, drawdownWithdrawalStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
+  }, [profile, startBalance, cash, spy, qqq, bitcoin, bonds, drawdownStrategy, drawdownWithdrawalStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
 
   const activeStartBalance = (activeTab === 'sp500' || activeTab === 'nasdaq100')
     ? startBalance
@@ -346,6 +352,7 @@ export default function App() {
             cash={cash}
             spy={spy}
             qqq={qqq}
+            bitcoin={bitcoin}
             bonds={bonds}
             drawdownStrategy={drawdownStrategy}
             horizon={horizon}
@@ -376,6 +383,7 @@ export default function App() {
             cash={cash}
             spy={spy}
             qqq={qqq}
+            bitcoin={bitcoin}
             bonds={bonds}
             horizon={horizon}
             withdrawRate={withdrawRate}

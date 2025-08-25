@@ -15,6 +15,7 @@ export interface ChartState {
   minimized: boolean;
   title: string;
   tab: "sp500" | "nasdaq100" | "portfolio" | "drawdown";
+  size: 'full' | 'half';
 }
 
 export type DrawdownStrategy =
@@ -101,36 +102,36 @@ export default function App() {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [startYear, setStartYear] = useState<number>(initialProfile.startYear);
   const [chartStates, setChartStates] = useState<Record<string, ChartState>>({
-    "sp500-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "sp500" },
-    "sp500-sample": { minimized: false, title: "Sample Run Trajectory", tab: "sp500" },
-    "nasdaq100-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "nasdaq100" },
-    "nasdaq100-sample": { minimized: false, title: "Sample Run Trajectory", tab: "nasdaq100" },
-    "portfolio-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "portfolio" },
-    "portfolio-median-asset-allocation": { minimized: false, title: "Median Sample Run Asset Allocation", tab: "portfolio" },
-    "portfolio-median-trajectory": { minimized: false, title: "Median Sample Run Trajectory", tab: "portfolio" },
-    "portfolio-asset-allocation": { minimized: false, title: "Sample Run 1 Asset Allocation", tab: "portfolio" },
-    "drawdown-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "drawdown" },
-    "drawdown-median-asset-allocation": { minimized: false, title: "Median Sample Run Asset Allocation", tab: "drawdown" },
-    "drawdown-median-trajectory": { minimized: false, title: "Median Sample Run Trajectory", tab: "drawdown" },
-    "drawdown-asset-allocation": { minimized: false, title: "Sample Run 1 Asset Allocation", tab: "drawdown" },
-    "portfolio-sample-2-asset-allocation": { minimized: true, title: "Sample Run 2 Asset Allocation", tab: "portfolio" },
-    "portfolio-sample-3-asset-allocation": { minimized: true, title: "Sample Run 3 Asset Allocation", tab: "portfolio" },
-    "portfolio-sample-4-asset-allocation": { minimized: true, title: "Sample Run 4 Asset Allocation", tab: "portfolio" },
-    "portfolio-sample-5-asset-allocation": { minimized: true, title: "Sample Run 5 Asset Allocation", tab: "portfolio" },
-    "portfolio-sample": { minimized: false, title: "Sample Run 1 Trajectory", tab: "portfolio" },
-    "portfolio-sample-2-trajectory": { minimized: true, title: "Sample Run 2 Trajectory", tab: "portfolio" },
-    "portfolio-sample-3-trajectory": { minimized: true, title: "Sample Run 3 Trajectory", tab: "portfolio" },
-    "portfolio-sample-4-trajectory": { minimized: true, title: "Sample Run 4 Trajectory", tab: "portfolio" },
-    "portfolio-sample-5-trajectory": { minimized: true, title: "Sample Run 5 Trajectory", tab: "portfolio" },
-    "drawdown-sample": { minimized: false, title: "Sample Run 1 Trajectory", tab: "drawdown" },
-    "drawdown-sample-2-asset-allocation": { minimized: true, title: "Sample Run 2 Asset Allocation", tab: "drawdown" },
-    "drawdown-sample-3-asset-allocation": { minimized: true, title: "Sample Run 3 Asset Allocation", tab: "drawdown" },
-    "drawdown-sample-4-asset-allocation": { minimized: true, title: "Sample Run 4 Asset Allocation", tab: "drawdown" },
-    "drawdown-sample-5-asset-allocation": { minimized: true, title: "Sample Run 5 Asset Allocation", tab: "drawdown" },
-    "drawdown-sample-2-trajectory": { minimized: true, title: "Sample Run 2 Trajectory", tab: "drawdown" },
-    "drawdown-sample-3-trajectory": { minimized: true, title: "Sample Run 3 Trajectory", tab: "drawdown" },
-    "drawdown-sample-4-trajectory": { minimized: true, title: "Sample Run 4 Trajectory", tab: "drawdown" },
-    "drawdown-sample-5-trajectory": { minimized: true, title: "Sample Run 5 Trajectory", tab: "drawdown" },
+    "sp500-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "sp500", size: 'full' },
+    "sp500-sample": { minimized: false, title: "Sample Run Trajectory", tab: "sp500", size: 'half' },
+    "nasdaq100-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "nasdaq100", size: 'full' },
+    "nasdaq100-sample": { minimized: false, title: "Sample Run Trajectory", tab: "nasdaq100", size: 'half' },
+    "portfolio-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "portfolio", size: 'full' },
+    "portfolio-median-asset-allocation": { minimized: false, title: "Median Sample Run Asset Allocation", tab: "portfolio", size: 'half' },
+    "portfolio-median-trajectory": { minimized: false, title: "Median Sample Run Trajectory", tab: "portfolio", size: 'full' },
+    "portfolio-asset-allocation": { minimized: false, title: "Sample Run 1 Asset Allocation", tab: "portfolio", size: 'half' },
+    "drawdown-trajectory": { minimized: false, title: "Portfolio Trajectory Bands", tab: "drawdown", size: 'full' },
+    "drawdown-median-asset-allocation": { minimized: false, title: "Median Sample Run Asset Allocation", tab: "drawdown", size: 'half' },
+    "drawdown-median-trajectory": { minimized: false, title: "Median Sample Run Trajectory", tab: "drawdown", size: 'full' },
+    "drawdown-asset-allocation": { minimized: false, title: "Sample Run 1 Asset Allocation", tab: "drawdown", size: 'half' },
+    "portfolio-sample-2-asset-allocation": { minimized: true, title: "Sample Run 2 Asset Allocation", tab: "portfolio", size: 'half' },
+    "portfolio-sample-3-asset-allocation": { minimized: true, title: "Sample Run 3 Asset Allocation", tab: "portfolio", size: 'half' },
+    "portfolio-sample-4-asset-allocation": { minimized: true, title: "Sample Run 4 Asset Allocation", tab: "portfolio", size: 'half' },
+    "portfolio-sample-5-asset-allocation": { minimized: true, title: "Sample Run 5 Asset Allocation", tab: "portfolio", size: 'half' },
+    "portfolio-sample": { minimized: false, title: "Sample Run 1 Trajectory", tab: "portfolio", size: 'half' },
+    "portfolio-sample-2-trajectory": { minimized: true, title: "Sample Run 2 Trajectory", tab: "portfolio", size: 'half' },
+    "portfolio-sample-3-trajectory": { minimized: true, title: "Sample Run 3 Trajectory", tab: "portfolio", size: 'half' },
+    "portfolio-sample-4-trajectory": { minimized: true, title: "Sample Run 4 Trajectory", tab: "portfolio", size: 'half' },
+    "portfolio-sample-5-trajectory": { minimized: true, title: "Sample Run 5 Trajectory", tab: "portfolio", size: 'half' },
+    "drawdown-sample": { minimized: false, title: "Sample Run 1 Trajectory", tab: "drawdown", size: 'half' },
+    "drawdown-sample-2-asset-allocation": { minimized: true, title: "Sample Run 2 Asset Allocation", tab: "drawdown", size: 'half' },
+    "drawdown-sample-3-asset-allocation": { minimized: true, title: "Sample Run 3 Asset Allocation", tab: "drawdown", size: 'half' },
+    "drawdown-sample-4-asset-allocation": { minimized: true, title: "Sample Run 4 Asset Allocation", tab: "drawdown", size: 'half' },
+    "drawdown-sample-5-asset-allocation": { minimized: true, title: "Sample Run 5 Asset Allocation", tab: "drawdown", size: 'half' },
+    "drawdown-sample-2-trajectory": { minimized: true, title: "Sample Run 2 Trajectory", tab: "drawdown", size: 'half' },
+    "drawdown-sample-3-trajectory": { minimized: true, title: "Sample Run 3 Trajectory", tab: "drawdown", size: 'half' },
+    "drawdown-sample-4-trajectory": { minimized: true, title: "Sample Run 4 Trajectory", tab: "drawdown", size: 'half' },
+    "drawdown-sample-5-trajectory": { minimized: true, title: "Sample Run 5 Trajectory", tab: "drawdown", size: 'half' },
   });
 
   const [chartOrder, setChartOrder] = useState<Record<string, string[]>>({
@@ -151,6 +152,13 @@ export default function App() {
       const newOrder = [chartId, ...order.filter(id => id !== chartId)];
       setChartOrder(prev => ({ ...prev, [tab]: newOrder }));
     }
+  };
+
+  const toggleSize = (chartId: string) => {
+    setChartStates(prev => ({
+      ...prev,
+      [chartId]: { ...prev[chartId], size: prev[chartId].size === 'half' ? 'full' : 'half' },
+    }));
   };
 
   const handleProfileChange = (p: Profile) => {
@@ -303,6 +311,7 @@ export default function App() {
             refreshCounter={refreshCounter}
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
+            toggleSize={toggleSize}
             chartOrder={chartOrder.sp500}
           />
         )}
@@ -326,6 +335,7 @@ export default function App() {
             refreshCounter={refreshCounter}
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
+            toggleSize={toggleSize}
             chartOrder={chartOrder.nasdaq100}
           />
         )}
@@ -354,6 +364,7 @@ export default function App() {
             refreshCounter={refreshCounter}
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
+            toggleSize={toggleSize}
             chartOrder={chartOrder.portfolio}
           />
         )}
@@ -382,6 +393,7 @@ export default function App() {
             refreshCounter={refreshCounter}
             chartStates={chartStates}
             toggleMinimize={toggleMinimize}
+            toggleSize={toggleSize}
             chartOrder={chartOrder.drawdown}
           />
         )}

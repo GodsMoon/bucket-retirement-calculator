@@ -51,6 +51,7 @@ interface DrawdownTabProps {
   refreshCounter: number;
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
+  toggleSize: (chartId: string) => void;
   chartOrder: string[];
 }
 
@@ -79,6 +80,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   refreshCounter,
   chartStates,
   toggleMinimize,
+  toggleSize,
   chartOrder,
 }) => {
   const strategy = drawdownWithdrawalStrategy;
@@ -245,6 +247,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title={chartStates['drawdown-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-trajectory')}
+        onToggleSize={() => toggleSize('drawdown-trajectory')}
+        size={chartStates['drawdown-trajectory'].size}
         minimizable={true}
       >
         {stats && (
@@ -273,6 +277,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title={chartStates['drawdown-median-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-asset-allocation')}
+        onToggleSize={() => toggleSize('drawdown-median-asset-allocation')}
+        size={chartStates['drawdown-median-asset-allocation'].size}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -310,6 +316,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title={chartStates['drawdown-median-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-trajectory')}
+        onToggleSize={() => toggleSize('drawdown-median-trajectory')}
+        size={chartStates['drawdown-median-trajectory'].size}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -348,6 +356,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title={chartStates['drawdown-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
+        onToggleSize={() => toggleSize('drawdown-asset-allocation')}
+        size={chartStates['drawdown-asset-allocation'].size}
         minimizable={true}
       >
         {sampleRun && (
@@ -385,6 +395,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         title={chartStates['drawdown-sample'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-sample')}
+        onToggleSize={() => toggleSize('drawdown-sample')}
+        size={chartStates['drawdown-sample'].size}
         minimizable={true}
       >
         {sampleRun && (
@@ -439,6 +451,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           title={chartStates[`drawdown-sample-${i}-asset-allocation`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-asset-allocation`)}
+          onToggleSize={() => toggleSize(`drawdown-sample-${i}-asset-allocation`)}
+          size={chartStates[`drawdown-sample-${i}-asset-allocation`].size}
           minimizable={true}
         >
           <div className="h-72">
@@ -474,6 +488,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           title={chartStates[`drawdown-sample-${i}-trajectory`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-trajectory`)}
+          onToggleSize={() => toggleSize(`drawdown-sample-${i}-trajectory`)}
+          size={chartStates[`drawdown-sample-${i}-trajectory`].size}
           minimizable={true}
         >
           <div className="h-72">
@@ -747,12 +763,13 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="drawdown" />
 
-      <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
         {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
-          </div>
+          !chartStates[chartId].minimized && (
+            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
+              {charts[chartId]}
+            </div>
+          )
         ))}
       </div>
 

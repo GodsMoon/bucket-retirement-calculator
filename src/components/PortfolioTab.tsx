@@ -181,6 +181,7 @@ interface PortfolioTabProps {
   refreshCounter: number;
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
+  toggleSize: (chartId: string) => void;
   chartOrder: string[];
 }
 
@@ -207,6 +208,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   refreshCounter,
   chartStates,
   toggleMinimize,
+  toggleSize,
   chartOrder,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -324,6 +326,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title={chartStates['portfolio-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
+        onToggleSize={() => toggleSize('portfolio-trajectory')}
+        size={chartStates['portfolio-trajectory'].size}
         minimizable={true}
       >
         {stats && (
@@ -352,6 +356,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title={chartStates['portfolio-median-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-asset-allocation')}
+        onToggleSize={() => toggleSize('portfolio-median-asset-allocation')}
+        size={chartStates['portfolio-median-asset-allocation'].size}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -389,6 +395,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title={chartStates['portfolio-median-trajectory'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-trajectory')}
+        onToggleSize={() => toggleSize('portfolio-median-trajectory')}
+        size={chartStates['portfolio-median-trajectory'].size}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -427,6 +435,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title={chartStates['portfolio-asset-allocation'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
+        onToggleSize={() => toggleSize('portfolio-asset-allocation')}
+        size={chartStates['portfolio-asset-allocation'].size}
         minimizable={true}
       >
         {sampleRun && (
@@ -464,6 +474,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         title={chartStates['portfolio-sample'].title}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
+        onToggleSize={() => toggleSize('portfolio-sample')}
+        size={chartStates['portfolio-sample'].size}
         minimizable={true}
       >
         {sampleRun && (
@@ -505,6 +517,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           title={chartStates[`portfolio-sample-${i}-asset-allocation`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-asset-allocation`)}
+          onToggleSize={() => toggleSize(`portfolio-sample-${i}-asset-allocation`)}
+          size={chartStates[`portfolio-sample-${i}-asset-allocation`].size}
           minimizable={true}
         >
           <div className="h-72">
@@ -540,6 +554,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           title={chartStates[`portfolio-sample-${i}-trajectory`].title}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-trajectory`)}
+          onToggleSize={() => toggleSize(`portfolio-sample-${i}-trajectory`)}
+          size={chartStates[`portfolio-sample-${i}-trajectory`].size}
           minimizable={true}
         >
           <div className="h-72">
@@ -738,12 +754,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="portfolio" />
 
-      <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
         {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
-          </div>
+          !chartStates[chartId].minimized && (
+            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
+              {charts[chartId]}
+            </div>
+          )
         ))}
       </div>
 

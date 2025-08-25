@@ -63,6 +63,7 @@ interface NasdaqTabProps {
   refreshCounter: number;
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
+  toggleSize: (chartId: string) => void;
   chartOrder: string[];
 }
 
@@ -84,6 +85,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   refreshCounter,
   chartStates,
   toggleMinimize,
+  toggleSize,
   chartOrder,
 }) => {
   const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
@@ -160,6 +162,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         title="Portfolio Trajectory Bands"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-trajectory')}
+        onToggleSize={() => toggleSize('nasdaq100-trajectory')}
+        size={chartStates['nasdaq100-trajectory'].size}
         minimizable={true}
       >
         {stats && (
@@ -188,6 +192,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         title="Sample Run Trajectory"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-sample')}
+        onToggleSize={() => toggleSize('nasdaq100-sample')}
+        size={chartStates['nasdaq100-sample'].size}
         minimizable={true}
       >
         {sampleRun && (
@@ -359,12 +365,13 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="nasdaq100" />
 
-      <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
         {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
-          </div>
+          !chartStates[chartId].minimized && (
+            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
+              {charts[chartId]}
+            </div>
+          )
         ))}
       </div>
 

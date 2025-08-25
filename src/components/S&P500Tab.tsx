@@ -63,6 +63,7 @@ interface SPTabProps {
   refreshCounter: number;
   chartStates: Record<string, ChartState>;
   toggleMinimize: (chartId: string) => void;
+  toggleSize: (chartId: string) => void;
   chartOrder: string[];
 }
 
@@ -84,6 +85,7 @@ const SPTab: React.FC<SPTabProps> = ({
   refreshCounter,
   chartStates,
   toggleMinimize,
+  toggleSize,
   chartOrder,
 }) => {
   const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
@@ -160,6 +162,8 @@ const SPTab: React.FC<SPTabProps> = ({
         title="Portfolio Trajectory Bands"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-trajectory')}
+        onToggleSize={() => toggleSize('sp500-trajectory')}
+        size={chartStates['sp500-trajectory'].size}
         minimizable={true}
       >
         {stats && (
@@ -188,6 +192,8 @@ const SPTab: React.FC<SPTabProps> = ({
         title="Sample Run Trajectory"
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-sample')}
+        onToggleSize={() => toggleSize('sp500-sample')}
+        size={chartStates['sp500-sample'].size}
         minimizable={true}
       >
         {sampleRun && (
@@ -359,12 +365,13 @@ const SPTab: React.FC<SPTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="sp500" />
 
-      <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
         {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized &&
-          <div key={chartId}>
-            {charts[chartId]}
-          </div>
+          !chartStates[chartId].minimized && (
+            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
+              {charts[chartId]}
+            </div>
+          )
         ))}
       </div>
 

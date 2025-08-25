@@ -6,11 +6,13 @@ interface ChartProps {
   title: string;
   onRefresh?: () => void;
   onMinimize: () => void;
+  onToggleSize: () => void;
+  size: 'full' | 'half';
   children: React.ReactNode;
   minimizable: boolean;
 }
 
-const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, children, minimizable }) => {
+const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, onToggleSize, size, children, minimizable }) => {
   const { chart: colorClass } = getChartColor(chartId);
   return (
     <section className={`bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full border-l-4 ${colorClass}`}>
@@ -27,6 +29,14 @@ const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, ch
               ⟳
             </button>
           )}
+          <button
+            className="text-m hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+            onClick={onToggleSize}
+            aria-label={size === 'half' ? 'Expand chart' : 'Shrink chart'}
+            title={size === 'half' ? 'Expand chart' : 'Shrink chart'}
+          >
+            {size === 'half' ? '⤢' : '⤡'}
+          </button>
           {minimizable && (
             <button
               className="text-m hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors"

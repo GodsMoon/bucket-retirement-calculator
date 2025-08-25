@@ -125,3 +125,21 @@ export const NASDAQ100_TOTAL_RETURNS: { year: number; returnPct: number }[] = [
   { year: 1987, returnPct: 10.50 },
   { year: 1986, returnPct: 6.89 },
 ];
+
+// Bitcoin Total Returns by Year, 2011-2024
+export const BITCOIN_TOTAL_RETURNS: { year: number; returnPct: number }[] = [
+  { year: 2024, returnPct: 154.0 },
+  { year: 2023, returnPct: 155.0 },
+  { year: 2022, returnPct: -64.0 },
+  { year: 2021, returnPct: 59.0 },
+  { year: 2020, returnPct: 301.0 },
+  { year: 2019, returnPct: 95.0 },
+  { year: 2018, returnPct: -73.0 },
+  { year: 2017, returnPct: 1331.0 },
+  { year: 2016, returnPct: 125.0 },
+  { year: 2015, returnPct: 35.0 },
+  { year: 2014, returnPct: -58.0 },
+  { year: 2013, returnPct: 5421.0 },
+  { year: 2012, returnPct: 186.0 },
+  { year: 2011, returnPct: 1473.0 },
+];

@@ -6,24 +6,27 @@ interface AllocationSliderProps {
   cash: number;
   spy: number;
   qqq: number;
+  bitcoin: number;
   bonds: number;
   onParamChange: (param: string, value: unknown) => void;
 }
 
-const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bonds, onParamChange }) => {
-  const total = cash + spy + qqq + bonds;
+const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bitcoin, bonds, onParamChange }) => {
+  const total = cash + spy + qqq + bitcoin + bonds;
 
   const handleChange = (newValues: number | number[]) => {
-    if (Array.isArray(newValues) && newValues.length === 4) {
+    if (Array.isArray(newValues) && newValues.length === 5) {
       const cashPct = newValues[1];
       const spyPct = newValues[2] - newValues[1];
       const qqqPct = newValues[3] - newValues[2];
+      const bitcoinPct = newValues[4] - newValues[3];
 
       onParamChange('allocation', {
         cash: total * (cashPct / 100),
         spy: total * (spyPct / 100),
         qqq: total * (qqqPct / 100),
-        bonds: total * ((100 - newValues[3]) / 100),
+        bitcoin: total * (bitcoinPct / 100),
+        bonds: total * ((100 - newValues[4]) / 100),
       });
     }
   };
@@ -31,13 +34,15 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bon
   const cashPct = total > 0 ? (cash / total) * 100 : 0;
   const spyPct = total > 0 ? (spy / total) * 100 : 0;
   const qqqPct = total > 0 ? (qqq / total) * 100 : 0;
-  const bondsPct = 100 - cashPct - spyPct - qqqPct;
+  const bitcoinPct = total > 0 ? (bitcoin / total) * 100 : 0;
+  const bondsPct = 100 - cashPct - spyPct - qqqPct - bitcoinPct;
 
   const sliderValues = [
     0,
     cashPct,
     cashPct + spyPct,
     cashPct + spyPct + qqqPct,
+    cashPct + spyPct + qqqPct + bitcoinPct,
   ];
 
   return (
@@ -51,13 +56,15 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bon
         trackStyle={[
           { backgroundColor: '#8884d8' }, // Cash
           { backgroundColor: '#82ca9d' }, // SPY
-          { backgroundColor: '#ffc658' }  // QQQ
+          { backgroundColor: '#ffc658' }, // QQQ
+          { backgroundColor: '#f2a900' }  // Bitcoin
         ]}
         handleStyle={[
             { display: 'none' }, // Handle at 0
             { backgroundColor: '#8884d8', border: '2px solid white', boxShadow: '0 0 0 2px #6f6af2' },
             { backgroundColor: '#82ca9d', border: '2px solid white', boxShadow: '0 0 0 2px #6ac189' },
-            { backgroundColor: '#ffc658', border: '2px solid white', boxShadow: '0 0 0 2px #e5b24f' }]}
+            { backgroundColor: '#ffc658', border: '2px solid white', boxShadow: '0 0 0 2px #e5b24f' },
+            { backgroundColor: '#f2a900', border: '2px solid white', boxShadow: '0 0 0 2px #d18e00' }]}
         railStyle={{ backgroundColor: '#95a5a6' }} // Bonds
       />
       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
@@ -72,6 +79,10 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bon
         <div className="flex items-center space-x-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffc658' }}></div>
           <span>QQQ ({qqqPct.toFixed(1)}%)</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f2a900' }}></div>
+          <span>Bitcoin ({bitcoinPct.toFixed(1)}%)</span>
         </div>
         <div className="flex items-center space-x-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#95a5a6' }}></div>

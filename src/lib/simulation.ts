@@ -70,7 +70,7 @@ export function calculateDrawdownStats(sims: RunResult[]) {
 
 // Custom RunResult for portfolio simulation
 export type PortfolioRunResult = {
-  balances: { total: number; cash: number; spy: number; qqq: number; bonds: number }[];
+  balances: { total: number; cash: number; spy: number; qqq: number; bitcoin: number; bonds: number }[];
   withdrawals: number[];
   failedYear: number | null;
   guardrailTriggers: number[];
@@ -79,10 +79,12 @@ export type PortfolioRunResult = {
 export function simulateGuytonKlinger(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   initialWithdrawalRate: number,
@@ -93,17 +95,18 @@ export function simulateGuytonKlinger(
   cutPercentage: number,
   raisePercentage: number
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   const guardrailTriggers: number[] = [];
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
   let withdrawalAmount = startBalance * initialWithdrawalRate;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -126,16 +129,22 @@ export function simulateGuytonKlinger(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -144,12 +153,13 @@ export function simulateGuytonKlinger(
     const portfolioBeforeGrowth = totalBeforeGrowth;
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
-    const portfolioAfterGrowth = cash + spy + qqq + bonds;
+    const portfolioAfterGrowth = cash + spy + qqq + bitcoin + bonds;
     const lastYearReturn = (portfolioAfterGrowth / portfolioBeforeGrowth) - 1;
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
 
     // Determine next year's withdrawal amount
     let nextWithdrawalAmount = withdrawalAmount;
@@ -179,10 +189,12 @@ export function simulateGuytonKlinger(
 export function simulateFloorAndCeiling(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   initialWithdrawalRate: number,
@@ -191,17 +203,18 @@ export function simulateFloorAndCeiling(
   floor: number,
   ceiling: number
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
   const initialWithdrawalAmount = startBalance * initialWithdrawalRate;
   let withdrawalAmount = initialWithdrawalAmount;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -237,16 +250,22 @@ export function simulateFloorAndCeiling(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -254,10 +273,11 @@ export function simulateFloorAndCeiling(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -266,10 +286,12 @@ export function simulateFloorAndCeiling(
 export function simulateFourPercentRuleRatchetUp(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   initialWithdrawalAmount: number,
@@ -277,15 +299,16 @@ export function simulateFourPercentRuleRatchetUp(
   inflationAdjust: boolean,
   inflationRate: number
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   let withdrawalAmount = initialWithdrawalAmount;
@@ -310,16 +333,22 @@ export function simulateFourPercentRuleRatchetUp(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -327,10 +356,11 @@ export function simulateFourPercentRuleRatchetUp(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
 
     // Determine next year's withdrawal amount
     const lastYearBalance = balances[y].total;
@@ -355,25 +385,28 @@ export function simulateFourPercentRuleRatchetUp(
 export function simulateFourPercentRule(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   initialWithdrawalAmount: number,
   inflationAdjust: boolean,
   inflationRate: number,
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   let withdrawalAmount = initialWithdrawalAmount;
@@ -403,16 +436,22 @@ export function simulateFourPercentRule(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -420,10 +459,11 @@ export function simulateFourPercentRule(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -432,25 +472,28 @@ export function simulateFourPercentRule(
 export function simulatePrincipalProtectionRule(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   initialWithdrawalAmount: number,
   inflationAdjust: boolean,
   inflationRate: number,
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   let withdrawalAmount = initialWithdrawalAmount;
@@ -483,16 +526,22 @@ export function simulatePrincipalProtectionRule(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -500,10 +549,11 @@ export function simulatePrincipalProtectionRule(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -512,23 +562,26 @@ export function simulatePrincipalProtectionRule(
 export function simulateFixedPercentage(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   withdrawalRate: number,
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -552,16 +605,22 @@ export function simulateFixedPercentage(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -569,10 +628,11 @@ export function simulateFixedPercentage(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };
@@ -581,25 +641,28 @@ export function simulateFixedPercentage(
 export function simulateCapeBased(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   basePercentage: number,
   capeFraction: number,
   capeData: { [year: number]: number }
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -628,16 +691,22 @@ export function simulateCapeBased(
       }
 
       if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
       for (let i = y + 1; i <= horizon; i++) {
-        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       }
       break;
     }
@@ -645,10 +714,11 @@ export function simulateCapeBased(
     // Apply market returns
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
   }
 
   return { balances, withdrawals, failedYear, guardrailTriggers: [] };

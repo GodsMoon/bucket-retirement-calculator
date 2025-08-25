@@ -409,7 +409,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Legend />
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ff7f7f" fill="#ff7f7f" />
                 <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
@@ -489,7 +489,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Legend />
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ff7f7f" fill="#ff7f7f" />
                 <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
@@ -571,7 +571,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Legend />
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ff7f7f" fill="#ff7f7f" />
                 <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>

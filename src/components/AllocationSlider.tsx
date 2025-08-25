@@ -56,14 +56,14 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bit
         trackStyle={[
           { backgroundColor: '#8884d8' }, // Cash
           { backgroundColor: '#82ca9d' }, // SPY
-          { backgroundColor: '#ffc658' }, // QQQ
+          { backgroundColor: '#ff7f7f' }, // QQQ
           { backgroundColor: '#f2a900' }  // Bitcoin
         ]}
         handleStyle={[
             { display: 'none' }, // Handle at 0
             { backgroundColor: '#8884d8', border: '2px solid white', boxShadow: '0 0 0 2px #6f6af2' },
             { backgroundColor: '#82ca9d', border: '2px solid white', boxShadow: '0 0 0 2px #6ac189' },
-            { backgroundColor: '#ffc658', border: '2px solid white', boxShadow: '0 0 0 2px #e5b24f' },
+            { backgroundColor: '#ff7f7f', border: '2px solid white', boxShadow: '0 0 0 2px #e56767' },
             { backgroundColor: '#f2a900', border: '2px solid white', boxShadow: '0 0 0 2px #d18e00' }]}
         railStyle={{ backgroundColor: '#95a5a6' }} // Bonds
       />
@@ -77,7 +77,7 @@ const AllocationSlider: React.FC<AllocationSliderProps> = ({ cash, spy, qqq, bit
           <span>SPY ({spyPct.toFixed(1)}%)</span>
         </div>
         <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffc658' }}></div>
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff7f7f' }}></div>
           <span>QQQ ({qqqPct.toFixed(1)}%)</span>
         </div>
         <div className="flex items-center space-x-1">

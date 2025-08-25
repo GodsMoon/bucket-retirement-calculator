@@ -155,8 +155,12 @@ export function simulateGuytonKlinger(
     let nextWithdrawalAmount = withdrawalAmount;
 
     // Inflation adjustment
-    if (inflationAdjust && lastYearReturn >= 0) {
-      nextWithdrawalAmount *= (1 + inflationRate);
+
+    const currentWithdrawalRate = withdrawalAmount / totalAfterGrowth;
+    if (inflationAdjust) {
+      if (lastYearReturn >= 0 || currentWithdrawalRate <= initialWithdrawalRate) {
+        nextWithdrawalAmount *= (1 + inflationRate);
+      }
     }
 
     // Guardrail adjustments

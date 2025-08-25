@@ -8,7 +8,7 @@ describe('simulateFourPercentRuleRatchetUp', () => {
   const withdrawalRate = 0.04;
   const inflationRate = 0.02;
 
-  // Mock returns for spy, qqq, bonds
+  // Mock returns for spy, qqq, bitcoin, bonds
   const returns = {
     up: [1.1, 1.1, 1.1, 1.1, 1.1], // 10% gain each year
     down: [0.9, 0.9, 0.9, 0.9, 0.9], // 10% loss each year
@@ -16,8 +16,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
 
   it('should ratchet up withdrawal amount when balance increases', () => {
     const result = simulateFourPercentRuleRatchetUp(
-      returns.up, returns.up, returns.up, // Assuming all assets have same returns for simplicity
-      0, initialSpy, 0, 0, // All in SPY
+      returns.up, returns.up, returns.up, returns.up, // Assuming all assets have same returns for simplicity
+      0, initialSpy, 0, 0, 0, // All in SPY
       horizon,
       initialWithdrawalAmount,
       withdrawalRate,
@@ -38,8 +38,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
 
   it('should only adjust for inflation when balance decreases', () => {
     const result = simulateFourPercentRuleRatchetUp(
-      returns.down, returns.down, returns.down,
-      0, initialSpy, 0, 0,
+      returns.down, returns.down, returns.down, returns.down,
+      0, initialSpy, 0, 0, 0,
       horizon,
       initialWithdrawalAmount,
       withdrawalRate,
@@ -60,8 +60,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
   it('should not reduce spending when ratchet-up amount is lower than inflation-adjusted amount', () => {
     const returnsForThisTest = [1.05, 1.0, 1.0, 1.0, 1.0];
     const result = simulateFourPercentRuleRatchetUp(
-      returnsForThisTest, returnsForThisTest, returnsForThisTest,
-      0, initialSpy, 0, 0,
+      returnsForThisTest, returnsForThisTest, returnsForThisTest, returnsForThisTest,
+      0, initialSpy, 0, 0, 0,
       horizon,
       initialWithdrawalAmount,
       withdrawalRate,

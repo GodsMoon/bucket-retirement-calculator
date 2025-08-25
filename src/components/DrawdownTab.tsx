@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Ar
 import type { DrawdownStrategies } from "../App";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
+import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
@@ -109,19 +109,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
+    const btcYears = new Set(BITCOIN_TOTAL_RETURNS.map(d => d.year));
     const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
+    return Array.from(spyYears).filter(y => qqqYears.has(y) && btcYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
 
   const returnsByYear = useMemo(() => {
-    const map = new Map<number, { spy: number; qqq: number; bond: number }>();
+    const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bond: number }>();
     const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
+    const btcReturnsMap = new Map(BITCOIN_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
+        bitcoin: btcReturnsMap.get(year)!,
         bond: bondReturnsMap.get(year)!,
       });
     }
@@ -138,21 +141,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       const yearSample = years.slice(startIdx, startIdx + horizon);
       const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
+      const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
       const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bond);
       if (strategy === "guytonKlinger") {
-        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
       } else if (strategy === "floorAndCeiling") {
-        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
       } else if (strategy === "capeBased") {
-        runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA, yearSample));
+        runs.push(simulateCapeBased(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
       } else if (strategy === "fixedPercentage") {
-        runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
+        runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, fixedPercentageParams.withdrawalRate));
       } else if (strategy === "principalProtectionRule") {
-        runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       } else if (strategy === "fourPercentRule") {
-        runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
       } else if (strategy === "fourPercentRuleUpwardReset") {
-        runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
+        runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
       }
     } else {
       // Monte Carlo modes
@@ -169,27 +173,28 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         }
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
+        const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
         const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bond);
         if (strategy === "guytonKlinger") {
-          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
         } else if (strategy === "floorAndCeiling") {
-          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
         } else if (strategy === "capeBased") {
-          runs.push(simulateCapeBased(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA, yearSample));
+          runs.push(simulateCapeBased(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA));
         } else if (strategy === "fixedPercentage") {
-          runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, fixedPercentageParams.withdrawalRate));
+          runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, fixedPercentageParams.withdrawalRate));
         } else if (strategy === "principalProtectionRule") {
-          runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+          runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         } else if (strategy === "fourPercentRule") {
-          runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+          runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
         } else if (strategy === "fourPercentRuleUpwardReset") {
-          runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
+          runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
         }
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cash, spy, qqq, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
+  }, [cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
 
 
   const stats = useMemo(() => {
@@ -228,6 +233,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         cash: percentile(sims.map(s => s.balances[t].cash), 0.5),
         spy: percentile(sims.map(s => s.balances[t].spy), 0.5),
         qqq: percentile(sims.map(s => s.balances[t].qqq), 0.5),
+        bitcoin: percentile(sims.map(s => s.balances[t].bitcoin), 0.5),
         bonds: percentile(sims.map(s => s.balances[t].bonds), 0.5),
       });
 
@@ -287,7 +293,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={stats.medianRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                data={stats.medianRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bitcoin: b.bitcoin, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -295,8 +301,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bitcoin + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -305,6 +311,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
             </ResponsiveContainer>
@@ -366,7 +373,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bitcoin: b.bitcoin, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -374,8 +381,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bitcoin + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -384,6 +391,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#ff8042" fill="#ff8042" />
               </AreaChart>
             </ResponsiveContainer>
@@ -460,7 +468,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bitcoin: b.bitcoin, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -468,8 +476,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bitcoin + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -478,6 +486,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
             </ResponsiveContainer>
@@ -528,7 +537,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100 and 10Y Treasury total return</div>
+      <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, Bitcoin and 10Y Treasury total return</div>
 
       <section className="grid md:grid-cols-3 gap-4 auto-rows-fr">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">

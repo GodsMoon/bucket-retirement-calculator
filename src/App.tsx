@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useMemo } from "react";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "./data/returns";
+import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "./data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "./data/bonds";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
@@ -43,8 +43,9 @@ export default function App() {
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
+    const btcYears = new Set(BITCOIN_TOTAL_RETURNS.map(d => d.year));
     const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
+    return Array.from(spyYears).filter(y => qqqYears.has(y) && btcYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
 
   const defaultParams = {

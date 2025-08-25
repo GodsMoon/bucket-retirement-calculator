@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import type { DrawdownStrategy } from "../App";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS } from "../data/returns";
+import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import AllocationSlider from "./AllocationSlider";
@@ -14,7 +14,7 @@ import MinimizedChartsBar from "./MinimizedChartsBar";
 
 // Custom RunResult for portfolio simulation
 type PortfolioRunResult = {
-  balances: { total: number; cash: number; spy: number; qqq: number; bonds: number }[];
+  balances: { total: number; cash: number; spy: number; qqq: number; bitcoin: number; bonds: number }[];
   failedYear: number | null;
   withdrawals: number[];
 };
@@ -22,10 +22,12 @@ type PortfolioRunResult = {
 function simulatePortfolioPath(
   spyReturns: number[],
   qqqReturns: number[],
+  bitcoinReturns: number[],
   bondReturns: number[],
   initialCash: number,
   initialSpy: number,
   initialQqq: number,
+  initialBitcoin: number,
   initialBonds: number,
   horizon: number,
   initialWithdrawalRate: number,
@@ -33,16 +35,17 @@ function simulatePortfolioPath(
   inflationAdjust: boolean,
   drawdownStrategy: DrawdownStrategy
 ): PortfolioRunResult {
-  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
   let cash = initialCash;
   let spy = initialSpy;
   let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
   let bonds = initialBonds;
-  const startBalance = initialCash + initialSpy + initialQqq + initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
   const baseWithdrawal = startBalance * initialWithdrawalRate;
 
-  balances[0] = { total: startBalance, cash, spy, qqq, bonds };
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
@@ -64,6 +67,11 @@ function simulatePortfolioPath(
           withdrawalAmount -= fromQqq;
         }
         if (withdrawalAmount > 0) {
+          const fromBitcoin = Math.min(withdrawalAmount, bitcoin);
+          bitcoin -= fromBitcoin;
+          withdrawalAmount -= fromBitcoin;
+        }
+        if (withdrawalAmount > 0) {
           const fromBonds = Math.min(withdrawalAmount, bonds);
           bonds -= fromBonds;
           withdrawalAmount -= fromBonds;
@@ -78,40 +86,46 @@ function simulatePortfolioPath(
           withdrawalAmount -= fromSpy;
         }
         if (withdrawalAmount > 0) {
+          const fromBitcoin = Math.min(withdrawalAmount, bitcoin);
+          bitcoin -= fromBitcoin;
+          withdrawalAmount -= fromBitcoin;
+        }
+        if (withdrawalAmount > 0) {
           const fromBonds = Math.min(withdrawalAmount, bonds);
           bonds -= fromBonds;
           withdrawalAmount -= fromBonds;
         }
       } else if (drawdownStrategy === 'cashFirst_equalParts') {
-        const part = withdrawalAmount / 3;
+        const part = withdrawalAmount / 4;
         const fromSpy = Math.min(part, spy);
         spy -= fromSpy;
         withdrawalAmount -= fromSpy;
         const fromQqq = Math.min(part, qqq);
         qqq -= fromQqq;
         withdrawalAmount -= fromQqq;
+        const fromBitcoin = Math.min(part, bitcoin);
+        bitcoin -= fromBitcoin;
+        withdrawalAmount -= fromBitcoin;
         const fromBonds = Math.min(part, bonds);
         bonds -= fromBonds;
         withdrawalAmount -= fromBonds;
-        if (withdrawalAmount > 0) {
-          const addSpy = Math.min(withdrawalAmount, spy);
-          spy -= addSpy;
-          withdrawalAmount -= addSpy;
-        }
-        if (withdrawalAmount > 0) {
-          const addQqq = Math.min(withdrawalAmount, qqq);
-          qqq -= addQqq;
-          withdrawalAmount -= addQqq;
-        }
-        if (withdrawalAmount > 0) {
-          const addBonds = Math.min(withdrawalAmount, bonds);
-          bonds -= addBonds;
-          withdrawalAmount -= addBonds;
+        const order = [
+          { bal: spy, set: (v: number) => { spy -= v; } },
+          { bal: qqq, set: (v: number) => { qqq -= v; } },
+          { bal: bitcoin, set: (v: number) => { bitcoin -= v; } },
+          { bal: bonds, set: (v: number) => { bonds -= v; } },
+        ];
+        for (const asset of order) {
+          if (withdrawalAmount <= 0) break;
+          const take = Math.min(withdrawalAmount, asset.bal);
+          asset.set(take);
+          withdrawalAmount -= take;
         }
       } else if (drawdownStrategy === 'cashFirst_bestPerformer') {
         const perf = [
           { key: 'spy', ret: spyReturns[y], bal: spy },
           { key: 'qqq', ret: qqqReturns[y], bal: qqq },
+          { key: 'bitcoin', ret: bitcoinReturns[y], bal: bitcoin },
           { key: 'bonds', ret: bondReturns[y], bal: bonds },
         ].sort((a, b) => b.ret - a.ret);
         for (const p of perf) {
@@ -119,6 +133,7 @@ function simulatePortfolioPath(
           const take = Math.min(withdrawalAmount, p.bal);
           if (p.key === 'spy') spy -= take;
           else if (p.key === 'qqq') qqq -= take;
+          else if (p.key === 'bitcoin') bitcoin -= take;
           else bonds -= take;
           withdrawalAmount -= take;
         }
@@ -126,6 +141,7 @@ function simulatePortfolioPath(
         const perf = [
           { key: 'spy', ret: spyReturns[y], bal: spy },
           { key: 'qqq', ret: qqqReturns[y], bal: qqq },
+          { key: 'bitcoin', ret: bitcoinReturns[y], bal: bitcoin },
           { key: 'bonds', ret: bondReturns[y], bal: bonds },
         ].sort((a, b) => a.ret - b.ret);
         for (const p of perf) {
@@ -133,25 +149,27 @@ function simulatePortfolioPath(
           const take = Math.min(withdrawalAmount, p.bal);
           if (p.key === 'spy') spy -= take;
           else if (p.key === 'qqq') qqq -= take;
+          else if (p.key === 'bitcoin') bitcoin -= take;
           else bonds -= take;
           withdrawalAmount -= take;
         }
       }
     }
 
-    const totalBeforeGrowth = cash + spy + qqq + bonds;
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
     if (totalBeforeGrowth <= 0 && failedYear === null) {
       failedYear = y + 1;
-      balances[y + 1] = { total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 };
+      balances[y + 1] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
       continue;
     }
 
     spy *= spyReturns[y];
     qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
     bonds *= bondReturns[y];
 
-    const totalAfterGrowth = cash + spy + qqq + bonds;
-    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bonds };
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
   }
 
   return { balances, failedYear, withdrawals };
@@ -218,19 +236,22 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
+    const btcYears = new Set(BITCOIN_TOTAL_RETURNS.map(d => d.year));
     const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
+    return Array.from(spyYears).filter(y => qqqYears.has(y) && btcYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
   }, []);
 
   const returnsByYear = useMemo(() => {
-    const map = new Map<number, { spy: number; qqq: number; bonds: number }>();
+    const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bonds: number }>();
     const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
+    const btcReturnsMap = new Map(BITCOIN_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
+        bitcoin: btcReturnsMap.get(year)!,
         bonds: bondReturnsMap.get(year)!,
       });
     }
@@ -247,8 +268,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       const yearSample = years.slice(startIdx, startIdx + horizon);
       const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
       const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
+      const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
       const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
-      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
     } else {
       // Monte Carlo modes
       for (let i = 0; i < numRuns; i++) {
@@ -264,8 +286,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         }
         const spyReturns = yearSample.map(y => returnsByYear.get(y)!.spy);
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
+        const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
         const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
-        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bondReturns, cash, spy, qqq, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
       }
     }
     return runs;
@@ -308,6 +331,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         cash: percentile(sims.map(s => s.balances[t].cash), 0.5),
         spy: percentile(sims.map(s => s.balances[t].spy), 0.5),
         qqq: percentile(sims.map(s => s.balances[t].qqq), 0.5),
+        bitcoin: percentile(sims.map(s => s.balances[t].bitcoin), 0.5),
         bonds: percentile(sims.map(s => s.balances[t].bonds), 0.5),
       });
 
@@ -366,7 +390,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={stats.medianRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                data={stats.medianRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bitcoin: b.bitcoin, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -374,8 +398,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bitcoin + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -384,6 +408,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
             </ResponsiveContainer>
@@ -445,7 +470,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bitcoin: b.bitcoin, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -453,8 +478,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bitcoin + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -463,6 +488,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
             </ResponsiveContainer>
@@ -526,7 +552,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bonds: b.bonds }))}
+                data={sampleRun.balances.map((b, i) => ({ year: i, cash: b.cash, spy: b.spy, qqq: b.qqq, bitcoin: b.bitcoin, bonds: b.bonds }))}
                 stackOffset="expand"
                 margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
               >
@@ -534,8 +560,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
                 <Tooltip
-                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bonds: number } }) => {
-                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bonds : 0;
+                  formatter={(value: number, _: string, props: { payload?: { cash: number; spy: number; qqq: number; bitcoin: number; bonds: number } }) => {
+                    const total = props.payload ? props.payload.cash + props.payload.spy + props.payload.qqq + props.payload.bitcoin + props.payload.bonds : 0;
                     const pct = total === 0 ? 0 : (value / total) * 100;
                     return `${currency.format(value)} (${pct.toFixed(1)}%)`;
                   }}
@@ -544,6 +570,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 <Area type="monotone" dataKey="cash" name="Cash" stackId="1" stroke="#8884d8" fill="#8884d8" />
                 <Area type="monotone" dataKey="spy" name="SPY" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
                 <Area type="monotone" dataKey="qqq" name="QQQ" stackId="1" stroke="#ffc658" fill="#ffc658" />
+                <Area type="monotone" dataKey="bitcoin" name="Bitcoin" stackId="1" stroke="#f2a900" fill="#f2a900" />
                 <Area type="monotone" dataKey="bonds" name="Bonds" stackId="1" stroke="#95a5a6" fill="#95a5a6" />
               </AreaChart>
             </ResponsiveContainer>
@@ -594,7 +621,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, and 10-year Treasury total return</div>
+      <div className="text-sm text-slate-600 dark:text-slate-400">Data: S&P 500, NASDAQ 100, Bitcoin, and 10-year Treasury total return</div>
 
       <section className="grid md:grid-cols-3 gap-4 auto-rows-fr">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">

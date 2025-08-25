@@ -155,7 +155,6 @@ export function simulateGuytonKlinger(
     let nextWithdrawalAmount = withdrawalAmount;
 
     // Inflation adjustment
-
     const currentWithdrawalRate = withdrawalAmount / totalAfterGrowth;
     if (inflationAdjust) {
       if (lastYearReturn >= 0 || currentWithdrawalRate <= initialWithdrawalRate) {
@@ -164,7 +163,6 @@ export function simulateGuytonKlinger(
     }
 
     // Guardrail adjustments
-    const currentWithdrawalRate = nextWithdrawalAmount / totalAfterGrowth;
     if (y < horizon - 15) { // Longevity rule
       if (currentWithdrawalRate > initialWithdrawalRate * (1 + guardrailLower)) {
         nextWithdrawalAmount *= (1 - cutPercentage);
@@ -593,7 +591,8 @@ export function simulateCapeBased(
   horizon: number,
   basePercentage: number,
   capeFraction: number,
-  capeData: { [year: number]: number }
+  capeData: { [year: number]: number },
+  yearSample: number[]
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -607,7 +606,7 @@ export function simulateCapeBased(
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
-    const currentYear = new Date().getFullYear() - horizon + y;
+    const currentYear = yearSample[y];
     const cape = capeData[currentYear] || 25; // Default to 25 if no data
     const capeYield = 1 / cape;
     const withdrawalRate = basePercentage + capeFraction * capeYield;

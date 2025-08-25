@@ -4,6 +4,7 @@ import type { DrawdownStrategies } from "../App";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
+import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 import Chart from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
@@ -107,22 +108,23 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
     const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
-    const btcYears = new Set(BITCOIN_TOTAL_RETURNS.map(d => d.year));
     const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y) && btcYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
+    const maxBitcoinYear = Math.max(...BITCOIN_TOTAL_RETURNS.map(d => d.year));
+    return Array.from(spyYears)
+      .filter(y => qqqYears.has(y) && bondYears.has(y) && y <= maxBitcoinYear)
+      .sort((a, b) => a - b);
   }, []);
 
   const returnsByYear = useMemo(() => {
     const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bond: number }>();
     const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
-    const btcReturnsMap = new Map(BITCOIN_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
-        bitcoin: btcReturnsMap.get(year)!,
+        bitcoin: bitcoinReturnMultiplier(year),
         bond: bondReturnsMap.get(year)!,
       });
     }

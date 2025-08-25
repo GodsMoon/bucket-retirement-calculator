@@ -16,8 +16,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
 
   it('should ratchet up withdrawal amount when balance increases', () => {
     const result = simulateFourPercentRuleRatchetUp(
-      returns.up, returns.up, returns.up, // Assuming all assets have same returns for simplicity
-      0, initialSpy, 0, 0, // All in SPY
+      returns.up, returns.up, returns.up, returns.up,
+      0, initialSpy, 0, 0, 0,
       horizon,
       initialWithdrawalAmount,
       withdrawalRate,
@@ -38,8 +38,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
 
   it('should only adjust for inflation when balance decreases', () => {
     const result = simulateFourPercentRuleRatchetUp(
-      returns.down, returns.down, returns.down,
-      0, initialSpy, 0, 0,
+      returns.down, returns.down, returns.down, returns.down,
+      0, initialSpy, 0, 0, 0,
       horizon,
       initialWithdrawalAmount,
       withdrawalRate,
@@ -60,8 +60,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
   it('should not reduce spending when ratchet-up amount is lower than inflation-adjusted amount', () => {
     const returnsForThisTest = [1.05, 1.0, 1.0, 1.0, 1.0];
     const result = simulateFourPercentRuleRatchetUp(
-      returnsForThisTest, returnsForThisTest, returnsForThisTest,
-      0, initialSpy, 0, 0,
+      returnsForThisTest, returnsForThisTest, returnsForThisTest, returnsForThisTest,
+      0, initialSpy, 0, 0, 0,
       horizon,
       initialWithdrawalAmount,
       withdrawalRate,
@@ -92,8 +92,8 @@ describe('simulateGuytonKlinger', () => {
 
   it('should skip inflation adjustment on negative return when withdrawal rate is above initial', () => {
     const result = simulateGuytonKlinger(
-      returns.down, returns.down, returns.down,
-      0, initialBalance, 0, 0,
+      returns.down, returns.down, returns.down, returns.down,
+      0, initialBalance, 0, 0, 0,
       horizon,
       initialWithdrawalRate,
       inflationRate,
@@ -110,8 +110,8 @@ describe('simulateGuytonKlinger', () => {
 
   it('should apply inflation adjustment on negative return when withdrawal rate is below initial', () => {
     const result = simulateGuytonKlinger(
-      [0.95, 0.95, 0.95, 0.95, 0.95], [0.95, 0.95, 0.95, 0.95, 0.95], [0.95, 0.95, 0.95, 0.95, 0.95],
-      0, initialBalance, 0, 0,
+      [0.95, 0.95, 0.95, 0.95, 0.95], [0.95, 0.95, 0.95, 0.95, 0.95], [0.95, 0.95, 0.95, 0.95, 0.95], [0.95, 0.95, 0.95, 0.95, 0.95],
+      0, initialBalance, 0, 0, 0,
       horizon,
       0.04, // Lower initial withdrawal rate
       inflationRate,
@@ -144,8 +144,8 @@ describe('simulateCapeBased', () => {
 
   it('should use the correct CAPE value for each year in the simulation', () => {
     const result = simulateCapeBased(
-      returns, returns, returns,
-      0, initialBalance, 0, 0,
+      returns, returns, returns, returns,
+      0, initialBalance, 0, 0, 0,
       horizon,
       basePercentage,
       capeFraction,

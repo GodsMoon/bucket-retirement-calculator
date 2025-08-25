@@ -163,6 +163,7 @@ interface PortfolioTabProps {
   cash: number;
   spy: number;
   qqq: number;
+  bitcoin: number;
   bonds: number;
   drawdownStrategy: DrawdownStrategy;
   horizon: number;
@@ -189,6 +190,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   cash,
   spy,
   qqq,
+  bitcoin,
   bonds,
   drawdownStrategy,
   horizon,
@@ -583,7 +585,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <h2 className="font-semibold">Inputs</h2>
           <h3 className="font-semibold">Portfolio Allocation:</h3>
           <div className="p-4">
-            <AllocationSlider cash={cash} spy={spy} qqq={qqq} bonds={bonds} onParamChange={onParamChange} />
+            <AllocationSlider cash={cash} spy={spy} qqq={qqq} bitcoin={bitcoin} bonds={bonds} onParamChange={onParamChange} />
           </div>
           <label className="block text-sm">Cash
             <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={cash} step={10000} onChange={v => onParamChange('cash', v)} />
@@ -593,6 +595,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           </label>
           <label className="block text-sm">QQQ (NASDAQ 100)
             <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={qqq} step={10000} onChange={v => onParamChange('qqq', v)} />
+          </label>
+          <label className="block text-sm">Bitcoin (BTC)
+            <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bitcoin} step={10000} onChange={v => onParamChange('bitcoin', v)} />
           </label>
           <label className="block text-sm">Bonds (10Y Treasury)
             <CurrencyInput className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={bonds} step={10000} onChange={v => onParamChange('bonds', v)} />

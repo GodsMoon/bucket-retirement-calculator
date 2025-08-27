@@ -15,7 +15,7 @@ export default function DataTab() {
         ...INFLATION_RATES.map(d => d.year),
         ...Object.keys(CAPE_DATA).map(Number),
       ])
-    ).sort((a, b) => a - b);
+    ).sort((a, b) => b - a);
   }, []);
 
   const rows = useMemo(() => years.map(year => ({

@@ -794,7 +794,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       <div className="grid md:grid-cols-2 gap-6">
         {chartOrder.map((chartId: string) => (
           !chartStates[chartId].minimized && (
-            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
+            <div key={chartId} className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} transition-all ease-in-out duration-1000`}>
               {charts[chartId]}
             </div>
           )

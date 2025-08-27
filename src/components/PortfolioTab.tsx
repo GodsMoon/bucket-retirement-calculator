@@ -697,6 +697,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
               ⟳
             </button>
           </div>
+          <div className="text-xs text-slate-500">
+            Years: {Math.min(...years)}–{Math.max(...years)} (<a href="#data" className="text-blue-600 dark:text-blue-400 underline">Data</a>)
+          </div>
           <label className="block text-sm">Drawdown Order
             <select
               className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"

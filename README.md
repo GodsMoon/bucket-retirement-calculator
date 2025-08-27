@@ -5,6 +5,7 @@ Bucket Retirement Calculator tests the classic 4% retirement withdrawal rule acr
 ## Live Demo
 
 The latest build is available at [bucket-retirement-calculator.vercel.app](https://bucket-retirement-calculator.vercel.app/).
+See the [Data tab](https://bucket-retirement-calculator.vercel.app/#data) for the raw yearly inputs.
 
 ## Features
 
@@ -34,7 +35,7 @@ Open the URL printed by the dev command in your browser to explore the app.
 
 ## Data
 
-Historical index data is sourced from Robert Shiller's *ie_data.xls* dataset included in the repository.
+Historical index data is sourced from Robert Shiller's *ie_data.xls* dataset included in the repository and spans 1881–2025. See the [Data tab](https://bucket-retirement-calculator.vercel.app/#data) for a full table of yearly values.
 
 ## License
 

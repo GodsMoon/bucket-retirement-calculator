@@ -10,6 +10,7 @@ import PortfolioTab from "./components/PortfolioTab";
 import DrawdownTab from "./components/DrawdownTab";
 import ProfileSelector, { type Profile } from "./components/ProfileSelector";
 import ThemeToggle from "./components/ThemeToggle";
+import DataTab from "./components/DataTab";
 
 export interface ChartState {
   minimized: boolean;
@@ -38,7 +39,31 @@ export type DrawdownStrategies =
 export default function App() {
   const round2 = (n: number) => Math.round(n * 100) / 100;
   const [darkMode, setDarkMode] = usePersistentState("darkMode", false);
-  const [activeTab, setActiveTab] = useState<"sp500" | "nasdaq100" | "portfolio" | "drawdown">("sp500");
+  const [activeTab, setActiveTab] = useState<
+    "sp500" | "nasdaq100" | "portfolio" | "drawdown" | "data"
+  >("sp500");
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (
+        hash === 'sp500' ||
+        hash === 'nasdaq100' ||
+        hash === 'portfolio' ||
+        hash === 'drawdown' ||
+        hash === 'data'
+      ) {
+        setActiveTab(hash as typeof activeTab);
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
 
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
@@ -406,6 +431,7 @@ export default function App() {
             chartOrder={chartOrder.drawdown}
           />
         )}
+        {activeTab === 'data' && <DataTab />}
         </div>
       </div>
     </div>

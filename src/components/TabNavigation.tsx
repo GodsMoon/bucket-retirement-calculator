@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabNavigationProps {
-  activeTab: "sp500" | "nasdaq100" | "portfolio" | "drawdown";
-  onTabChange: (tab: "sp500" | "nasdaq100" | "portfolio" | "drawdown") => void;
+  activeTab: "sp500" | "nasdaq100" | "portfolio" | "drawdown" | "data";
+  onTabChange: (tab: "sp500" | "nasdaq100" | "portfolio" | "drawdown" | "data") => void;
 }
 
 const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange }) => {
@@ -38,6 +38,12 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         onClick={() => onTabChange('drawdown')}
       >
         Drawdown Strategies
+      </button>
+      <button
+        className={`${baseTabClass} ${activeTab === 'data' ? activeClass : inactiveClass} ml-auto bg-slate-200 dark:bg-slate-700 rounded-t-lg`}
+        onClick={() => onTabChange('data')}
+      >
+        Data
       </button>
     </div>
   );

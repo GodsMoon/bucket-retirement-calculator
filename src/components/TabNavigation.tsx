@@ -40,7 +40,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         Drawdown Strategies
       </button>
       <button
-        className={`${baseTabClass} ${activeTab === 'data' ? activeClass : inactiveClass}`}
+        className={`${baseTabClass} ${activeTab === 'data' ? activeClass : inactiveClass} ml-auto bg-slate-200 dark:bg-slate-700 rounded-t-lg`}
         onClick={() => onTabChange('data')}
       >
         Data

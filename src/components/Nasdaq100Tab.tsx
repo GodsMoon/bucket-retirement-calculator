@@ -290,6 +290,9 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                         ⟳
                     </button>
                 </div>
+                <div className="text-xs text-slate-500">
+                    Years: {Math.min(...years)}–{Math.max(...years)} (<a href="#data" className="text-blue-600 dark:text-blue-400 underline">Data</a>)
+                </div>
                 <div className="space-y-2 text-sm">
                     <label className="flex items-center gap-2">
                         <input

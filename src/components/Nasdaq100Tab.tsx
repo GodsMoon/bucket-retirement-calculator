@@ -66,6 +66,7 @@ interface NasdaqTabProps {
   toggleMinimize: (chartId: string) => void;
   toggleSize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChartOrder?: (newOrder: string[]) => void;
 }
 
 const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
@@ -88,6 +89,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   toggleMinimize,
   toggleSize,
   chartOrder,
+  onReorderChartOrder,
 }) => {
   const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -227,6 +229,29 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         )}
       </Chart>
     ),
+  };
+
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [overId, setOverId] = React.useState<string | null>(null);
+
+  const handleSwap = (targetId: string, sourceId: string) => {
+    if (!onReorderChartOrder) return;
+    if (!sourceId || sourceId === targetId) return;
+    const current = chartOrder.slice();
+    const srcIdx = current.indexOf(sourceId);
+    const tgtIdx = current.indexOf(targetId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    const tmp = current[srcIdx];
+    current[srcIdx] = current[tgtIdx];
+    current[tgtIdx] = tmp;
+    onReorderChartOrder(current);
+  };
+
+  const handleDropAtEnd = (sourceId: string) => {
+    if (!onReorderChartOrder) return;
+    const current = chartOrder.slice().filter(id => id !== sourceId);
+    current.push(sourceId);
+    onReorderChartOrder(current);
   };
 
   return (
@@ -377,12 +402,54 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
+                data-chart-id={chartId}
+                onDragOver={(e) => {
+                  if (!draggingId) return;
+                  e.preventDefault();
+                  setOverId(chartId);
+                }}
+                onDragLeave={() => {
+                  setOverId(prev => (prev === chartId ? null : prev));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData('text/plain');
+                  handleSwap(chartId, src);
+                  setDraggingId(null);
+                  setOverId(null);
+                }}
               >
-                {charts[chartId]}
+                {draggingId && (
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl border-4 border-dashed border-blue-400 flex items-center justify-center bg-slate-900/70 dark:bg-white/70">
+                    <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+                  </div>
+                )}
+                {React.cloneElement(
+                  charts[chartId] as React.ReactElement<any>,
+                  {
+                    onDragStart: () => setDraggingId(chartId),
+                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                  } as any
+                )}
               </motion.div>
             )
           ))}
+          {draggingId && (
+            <div
+              className="h-24 rounded-2xl bg-slate-900/70 dark:bg-white/70 flex items-center justify-center text-xs font-semibold transform scale-110 border-4 border-dashed border-blue-400"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const src = e.dataTransfer.getData('text/plain');
+                handleDropAtEnd(src);
+                setDraggingId(null);
+                setOverId(null);
+              }}
+            >
+              <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+            </div>
+          )}
         </div>
       </LayoutGroup>
 

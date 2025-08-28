@@ -204,6 +204,7 @@ interface PortfolioTabProps {
   toggleMinimize: (chartId: string) => void;
   toggleSize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChartOrder?: (newOrder: string[]) => void;
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -232,8 +233,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   toggleMinimize,
   toggleSize,
   chartOrder,
+  onReorderChartOrder,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [overId, setOverId] = React.useState<string | null>(null);
 
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
@@ -800,12 +804,66 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
+                data-chart-id={chartId}
+                onDragOver={(e) => {
+                  if (!draggingId) return;
+                  e.preventDefault();
+                  setOverId(chartId);
+                }}
+                onDragLeave={() => {
+                  setOverId(prev => (prev === chartId ? null : prev));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData('text/plain');
+                  if (!onReorderChartOrder || !src || src === chartId) return;
+                  const current = chartOrder.slice();
+                  const srcIdx = current.indexOf(src);
+                  const tgtIdx = current.indexOf(chartId);
+                  if (srcIdx === -1 || tgtIdx === -1) return;
+                  const tmp = current[srcIdx];
+                  current[srcIdx] = current[tgtIdx];
+                  current[tgtIdx] = tmp;
+                  onReorderChartOrder(current);
+                  setDraggingId(null);
+                  setOverId(null);
+                }}
               >
-                {charts[chartId]}
+                {draggingId && (
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl border-4 border-dashed border-blue-400 flex items-center justify-center bg-slate-900/70 dark:bg-white/70">
+                    <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+                  </div>
+                )}
+                {React.cloneElement(
+                  charts[chartId] as React.ReactElement<any>,
+                  {
+                    onDragStart: () => setDraggingId(chartId),
+                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                  } as any
+                )}
               </motion.div>
             )
           ))}
+          {/* End drop target */}
+          {draggingId && (
+            <div
+              className="h-24 rounded-2xl bg-slate-900/70 dark:bg-white/70 flex items-center justify-center text-xs font-semibold transform scale-110 border-4 border-dashed border-blue-400"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const src = e.dataTransfer.getData('text/plain');
+                if (!onReorderChartOrder || !src) return;
+                const current = chartOrder.slice().filter(id => id !== src);
+                current.push(src);
+                onReorderChartOrder(current);
+                setDraggingId(null);
+                setOverId(null);
+              }}
+            >
+              <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+            </div>
+          )}
         </div>
       </LayoutGroup>
 

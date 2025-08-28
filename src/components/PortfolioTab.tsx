@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
+import { LayoutGroup, motion } from "framer-motion";
 import type { DrawdownStrategy } from "../App";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
 import { bitcoinReturnMultiplier } from "../lib/bitcoin";
@@ -791,15 +792,22 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="portfolio" />
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized && (
-            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
-              {charts[chartId]}
-            </div>
-          )
-        ))}
-      </div>
+      <LayoutGroup>
+        <div className="grid md:grid-cols-2 gap-6">
+          {chartOrder.map((chartId: string) => (
+            !chartStates[chartId].minimized && (
+              <motion.div
+                key={chartId}
+                layout
+                transition={{ duration: 0.33 }}
+                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+              >
+                {charts[chartId]}
+              </motion.div>
+            )
+          ))}
+        </div>
+      </LayoutGroup>
 
       <footer className="text-xs text-slate-600 dark:text-slate-400">
         <div>Assumptions: ...</div>

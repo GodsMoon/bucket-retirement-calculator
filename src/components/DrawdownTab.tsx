@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid, ReferenceDot } from "recharts";
+import { LayoutGroup, motion } from "framer-motion";
 import type { DrawdownStrategies } from "../App";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
@@ -782,15 +783,22 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="drawdown" />
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized && (
-            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
-              {charts[chartId]}
-            </div>
-          )
-        ))}
-      </div>
+      <LayoutGroup>
+        <div className="grid md:grid-cols-2 gap-6">
+          {chartOrder.map((chartId: string) => (
+            !chartStates[chartId].minimized && (
+              <motion.div
+                key={chartId}
+                layout
+                transition={{ duration: 0.33 }}
+                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+              >
+                {charts[chartId]}
+              </motion.div>
+            )
+          ))}
+        </div>
+      </LayoutGroup>
 
       <section className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
         <h2 className="font-semibold mb-2">Strategy Explainers</h2>

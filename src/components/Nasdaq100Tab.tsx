@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
+import { LayoutGroup, motion } from "framer-motion";
 import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
@@ -368,15 +369,22 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
 
       <MinimizedChartsBar chartStates={chartStates} onRestore={toggleMinimize} activeTab="nasdaq100" />
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {chartOrder.map((chartId: string) => (
-          !chartStates[chartId].minimized && (
-            <div key={chartId} className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}>
-              {charts[chartId]}
-            </div>
-          )
-        ))}
-      </div>
+      <LayoutGroup>
+        <div className="grid md:grid-cols-2 gap-6">
+          {chartOrder.map((chartId: string) => (
+            !chartStates[chartId].minimized && (
+              <motion.div
+                key={chartId}
+                layout
+                transition={{ duration: 0.33 }}
+                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+              >
+                {charts[chartId]}
+              </motion.div>
+            )
+          ))}
+        </div>
+      </LayoutGroup>
 
       <footer className="text-xs text-slate-600 dark:text-slate-400">
         <div>Assumptions: 100% QQQ proxy via NASDAQ 100 total return series; withdrawals occur at the start of each year; returns applied end-of-year; no taxes/fees. "Random shuffle" preserves the empirical distribution but breaks temporal clusters; "Bootstrap" samples years with replacement (classic Monte Carlo). For inflation- adjusted 4% rule, the withdrawal is 4% of initial and then grown by the chosen inflation rate.</div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { getChartColor } from '../chartColors';
 
 interface ChartProps {
@@ -15,7 +16,11 @@ interface ChartProps {
 const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, onToggleSize, size, children, minimizable }) => {
   const { chart: colorClass } = getChartColor(chartId);
   return (
-    <section className={`bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full border-l-4 ${colorClass}`}>
+    <motion.section
+      layout
+      transition={{ duration: 0.33 }}
+      className={`bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full border-l-4 ${colorClass}`}
+    >
       <div className="flex items-top justify-between">
         <h2 className="font-semibold mb-2 pt-2">{title}</h2>
         <div className="flex items-top">
@@ -50,7 +55,7 @@ const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, on
         </div>
       </div>
       {children}
-    </section>
+    </motion.section>
   );
 };
 

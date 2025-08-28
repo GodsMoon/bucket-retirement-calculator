@@ -446,8 +446,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
-                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="left" tickFormatter={(v: number) => currency.format(v)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => currency.format(v)} />
                 <Tooltip
                   formatter={(value: number, name: string) => {
                     return [`${currency.format(value)}`, name];
@@ -723,6 +723,10 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           </label>
           <div className="space-y-2 text-sm">
             <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
+              Actual sequence (randomize start year)
+            </label>
+            <label className="flex items-center gap-2">
               <input
                 type="radio"
                 name="mode"
@@ -745,10 +749,6 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                   onParamChange('startYear', clamped);
                 }}
               />
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
-              Actual sequence (randomize start year)
             </label>
             <label className="flex items-center gap-2">
               <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => onParamChange('mode', 'random-shuffle')} />

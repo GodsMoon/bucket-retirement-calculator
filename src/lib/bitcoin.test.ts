@@ -6,7 +6,8 @@ const map = new Map(BITCOIN_TOTAL_RETURNS.map(d => [d.year, 1 + d.returnPct / 10
 
 describe('bitcoinReturnMultiplier', () => {
   it('wraps years before data range', () => {
-    expect(bitcoinReturnMultiplier(2010)).toBeCloseTo(map.get(2024)!);
+    const maxYear = Math.max(...BITCOIN_TOTAL_RETURNS.map(d => d.year));
+    expect(bitcoinReturnMultiplier(2010)).toBeCloseTo(map.get(maxYear)!);
   });
 
   it('uses actual returns for 2011 and later', () => {

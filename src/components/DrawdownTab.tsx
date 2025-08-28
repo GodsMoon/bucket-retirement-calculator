@@ -273,7 +273,10 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
                 <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
-                <Tooltip formatter={(v: number) => typeof v === 'number' ? currency.format(v) : v} itemSorter={(item) => { return (item.value as number) * -1; }} />
+                <Tooltip
+                  formatter={(v: number) => (typeof v === 'number' ? currency.format(v) : v)}
+                  itemSorter={(item: { value?: number }) => { return (item.value ?? 0) * -1; }}
+                />
                 <Legend />
                 <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
                 <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
@@ -349,8 +352,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
-                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="left" tickFormatter={(v: number) => currency.format(v)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => currency.format(v)} />
                 <Tooltip
                   formatter={(value: number, name: string) => {
                     return [`${currency.format(value)}`, name];
@@ -430,8 +433,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
-                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="left" tickFormatter={(v: number) => currency.format(v)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => currency.format(v)} />
 
                 <Tooltip
                   formatter={(value: number, name: string) => {
@@ -522,8 +525,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
-                <YAxis yAxisId="left" tickFormatter={(v) => currency.format(v as number)} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => currency.format(v as number)} />
+                <YAxis yAxisId="left" tickFormatter={(v: number) => currency.format(v)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => currency.format(v)} />
                 <Tooltip
                   formatter={(value: number, name: string) => {
                     return [`${currency.format(value)}`, name];
@@ -714,6 +717,10 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           </label>
           <div className="space-y-2 text-sm">
             <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
+              Actual sequence (randomize start year)
+            </label>
+            <label className="flex items-center gap-2">
               <input
                 type="radio"
                 name="mode"
@@ -736,10 +743,6 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                   onParamChange('startYear', clamped);
                 }}
               />
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
-              Actual sequence (randomize start year)
             </label>
             <label className="flex items-center gap-2">
               <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => onParamChange('mode', 'random-shuffle')} />

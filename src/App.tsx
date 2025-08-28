@@ -88,7 +88,7 @@ export default function App() {
     isFirstWithdrawLocked: false,
     inflationAdjust: true,
     inflationRate: 0.02,
-    mode: "actual-seq" as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap",
+    mode: "actual-seq-random-start" as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap",
     numRuns: 1000,
     seed: "" as number | "",
     startYear: years[0],

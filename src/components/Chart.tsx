@@ -28,7 +28,7 @@ const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, on
     >
       {/* Drag bar handle */}
       <div
-        className="h-3 -mt-2 -mx-4 mb-2 px-4 rounded-t-2xl cursor-grab active:cursor-grabbing bg-slate-200/60 dark:bg-slate-700/60"
+        className="h-4 -mt-2 -mx-4 mb-2 px-4 rounded-t-2xl cursor-grab active:cursor-grabbing bg-slate-200/60 dark:bg-slate-700/60 flex items-center justify-center text-xs text-slate-600 dark:text-slate-200 select-none"
         draggable
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move';
@@ -49,7 +49,9 @@ const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, on
         }}
         title="Drag to reorder"
         aria-label="Drag chart to reorder"
-      />
+      >
+        ==
+      </div>
       <div className="flex items-top justify-between">
         <h2 className="font-semibold mb-2 pt-2">{title}</h2>
         <div className="flex items-top">

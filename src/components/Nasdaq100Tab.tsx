@@ -402,7 +402,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} ${draggingId && overId === chartId ? 'border-2 border-dashed border-blue-400 rounded-xl' : ''}`}
+                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
                 data-chart-id={chartId}
                 onDragOver={(e) => {
                   if (!draggingId) return;
@@ -415,11 +415,18 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 onDrop={(e) => {
                   e.preventDefault();
                   const src = e.dataTransfer.getData('text/plain');
+                  // match size to target if different
+                  if (src && src !== chartId && chartStates[src] && chartStates[chartId] && chartStates[src].size !== chartStates[chartId].size) {
+                    toggleSize(src);
+                  }
                   handleDropOn(chartId, src);
                   setDraggingId(null);
                   setOverId(null);
                 }}
               >
+                {draggingId && overId === chartId && (
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl bg-slate-800/90 text-white flex items-center justify-center font-semibold text-sm">Drop Here</div>
+                )}
                 {React.cloneElement(charts[chartId] as React.ReactElement, {
                   onDragStart: () => setDraggingId(chartId),
                   onDragEnd: () => { setDraggingId(null); setOverId(null); },
@@ -429,7 +436,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
           ))}
           {draggingId && (
             <div
-              className="h-24 rounded-xl border-2 border-dashed border-blue-300 flex items-center justify-center text-xs text-blue-400"
+              className="h-24 rounded-2xl bg-slate-800/90 text-white flex items-center justify-center text-xs font-semibold transform scale-110"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -438,7 +445,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 setDraggingId(null);
                 setOverId(null);
               }}
-            >Drop here to place at end</div>
+            >Drop Here</div>
           )}
         </div>
       </LayoutGroup>

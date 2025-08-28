@@ -710,6 +710,10 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           </label>
           <div className="space-y-2 text-sm">
             <label className="flex items-center gap-2">
+              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
+              Actual sequence (randomize start year)
+            </label>
+            <label className="flex items-center gap-2">
               <input
                 type="radio"
                 name="mode"
@@ -732,10 +736,6 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                   onParamChange('startYear', clamped);
                 }}
               />
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="mode" checked={mode === 'actual-seq-random-start'} onChange={() => onParamChange('mode', 'actual-seq-random-start')} />
-              Actual sequence (randomize start year)
             </label>
             <label className="flex items-center gap-2">
               <input type="radio" name="mode" checked={mode === 'random-shuffle'} onChange={() => onParamChange('mode', 'random-shuffle')} />

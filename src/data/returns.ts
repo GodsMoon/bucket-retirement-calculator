@@ -128,6 +128,7 @@ export const NASDAQ100_TOTAL_RETURNS: { year: number; returnPct: number }[] = [
 
 // Bitcoin Total Returns by Year, 2011-2024
 export const BITCOIN_TOTAL_RETURNS: { year: number; returnPct: number }[] = [
+  { year: 2025, returnPct: 20.0 },
   { year: 2024, returnPct: 154.0 },
   { year: 2023, returnPct: 155.0 },
   { year: 2022, returnPct: -64.0 },

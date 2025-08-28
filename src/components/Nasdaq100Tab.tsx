@@ -66,6 +66,7 @@ interface NasdaqTabProps {
   toggleMinimize: (chartId: string) => void;
   toggleSize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChartOrder?: (newOrder: string[]) => void;
 }
 
 const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
@@ -88,6 +89,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   toggleMinimize,
   toggleSize,
   chartOrder,
+  onReorderChartOrder,
 }) => {
   const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
   const availableMultipliers = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
@@ -227,6 +229,29 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         )}
       </Chart>
     ),
+  };
+
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [overId, setOverId] = React.useState<string | null>(null);
+
+  const handleDropOn = (targetId: string, sourceId: string) => {
+    if (!onReorderChartOrder) return;
+    if (!sourceId || sourceId === targetId) return;
+    const current = chartOrder.slice();
+    const fromIdx = current.indexOf(sourceId);
+    const toIdx = current.indexOf(targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    current.splice(fromIdx, 1);
+    const insertAt = current.indexOf(targetId);
+    current.splice(insertAt, 0, sourceId);
+    onReorderChartOrder(current);
+  };
+
+  const handleDropAtEnd = (sourceId: string) => {
+    if (!onReorderChartOrder) return;
+    const current = chartOrder.slice().filter(id => id !== sourceId);
+    current.push(sourceId);
+    onReorderChartOrder(current);
   };
 
   return (
@@ -377,12 +402,44 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} ${draggingId && overId === chartId ? 'border-2 border-dashed border-blue-400 rounded-xl' : ''}`}
+                data-chart-id={chartId}
+                onDragOver={(e) => {
+                  if (!draggingId) return;
+                  e.preventDefault();
+                  setOverId(chartId);
+                }}
+                onDragLeave={() => {
+                  setOverId(prev => (prev === chartId ? null : prev));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData('text/plain');
+                  handleDropOn(chartId, src);
+                  setDraggingId(null);
+                  setOverId(null);
+                }}
               >
-                {charts[chartId]}
+                {React.cloneElement(charts[chartId] as React.ReactElement, {
+                  onDragStart: () => setDraggingId(chartId),
+                  onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                })}
               </motion.div>
             )
           ))}
+          {draggingId && (
+            <div
+              className="h-24 rounded-xl border-2 border-dashed border-blue-300 flex items-center justify-center text-xs text-blue-400"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const src = e.dataTransfer.getData('text/plain');
+                handleDropAtEnd(src);
+                setDraggingId(null);
+                setOverId(null);
+              }}
+            >Drop here to place at end</div>
+          )}
         </div>
       </LayoutGroup>
 

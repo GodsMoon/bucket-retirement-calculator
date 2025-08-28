@@ -204,6 +204,7 @@ interface PortfolioTabProps {
   toggleMinimize: (chartId: string) => void;
   toggleSize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChartOrder?: (newOrder: string[]) => void;
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({
@@ -232,8 +233,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   toggleMinimize,
   toggleSize,
   chartOrder,
+  onReorderChartOrder,
 }) => {
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [overId, setOverId] = React.useState<string | null>(null);
 
   const years = useMemo(() => {
     const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
@@ -800,12 +804,56 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} ${draggingId && overId === chartId ? 'border-2 border-dashed border-blue-400 rounded-xl' : ''}`}
+                data-chart-id={chartId}
+                onDragOver={(e) => {
+                  if (!draggingId) return;
+                  e.preventDefault();
+                  setOverId(chartId);
+                }}
+                onDragLeave={() => {
+                  setOverId(prev => (prev === chartId ? null : prev));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData('text/plain');
+                  if (!onReorderChartOrder || !src || src === chartId) return;
+                  const current = chartOrder.slice();
+                  const fromIdx = current.indexOf(src);
+                  const toIdx = current.indexOf(chartId);
+                  if (fromIdx === -1 || toIdx === -1) return;
+                  current.splice(fromIdx, 1);
+                  const insertAt = current.indexOf(chartId);
+                  current.splice(insertAt, 0, src);
+                  onReorderChartOrder(current);
+                  setDraggingId(null);
+                  setOverId(null);
+                }}
               >
-                {charts[chartId]}
+                {React.cloneElement(charts[chartId] as React.ReactElement, {
+                  onDragStart: () => setDraggingId(chartId),
+                  onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                })}
               </motion.div>
             )
           ))}
+          {/* End drop target */}
+          {draggingId && (
+            <div
+              className="h-24 rounded-xl border-2 border-dashed border-blue-300 flex items-center justify-center text-xs text-blue-400"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const src = e.dataTransfer.getData('text/plain');
+                if (!onReorderChartOrder || !src) return;
+                const current = chartOrder.slice().filter(id => id !== src);
+                current.push(src);
+                onReorderChartOrder(current);
+                setDraggingId(null);
+                setOverId(null);
+              }}
+            >Drop here to place at end</div>
+          )}
         </div>
       </LayoutGroup>
 

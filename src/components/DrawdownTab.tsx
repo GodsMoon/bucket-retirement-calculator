@@ -56,6 +56,7 @@ interface DrawdownTabProps {
   toggleMinimize: (chartId: string) => void;
   toggleSize: (chartId: string) => void;
   chartOrder: string[];
+  onReorderChartOrder?: (newOrder: string[]) => void;
 }
 
 import { CAPE_DATA } from "../data/cape";
@@ -86,8 +87,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   toggleMinimize,
   toggleSize,
   chartOrder,
+  onReorderChartOrder,
 }) => {
   const strategy = drawdownWithdrawalStrategy;
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [overId, setOverId] = React.useState<string | null>(null);
   const [guytonKlingerParams, setGuytonKlingerParams] = React.useState({
     guardrailUpper: 0.06,
     guardrailLower: 0.03,
@@ -791,12 +795,51 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''}
+                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} ${draggingId && overId === chartId ? 'border-2 border-dashed border-blue-400 rounded-xl' : ''}`}
+                data-chart-id={chartId}
+                onDragOver={(e) => {
+                  if (!draggingId) return;
+                  e.preventDefault();
+                  setOverId(chartId);
+                }}
+                onDragLeave={() => {
+                  setOverId(prev => (prev === chartId ? null : prev));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData('text/plain');
+                  if (!onReorderChartOrder || !src || src === chartId) return;
+                  const current = chartOrder.slice();
+                  const fromIdx = current.indexOf(src);
+                  const toIdx = current.indexOf(chartId);
+                  if (fromIdx === -1 || toIdx === -1) return;
+                  current.splice(fromIdx, 1);
+                  const insertAt = current.indexOf(chartId);
+                  current.splice(insertAt, 0, src);
+                  onReorderChartOrder(current);
+                  setDraggingId(null);
+                  setOverId(null);
+                }}
               >
-                {charts[chartId]}
+                {React.cloneElement(charts[chartId] as React.ReactElement, {
+                  onDragStart: () => setDraggingId(chartId),
+                  onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                })}
               </motion.div>
             )
           ))}
+          <div
+            className="h-10 md:h-0"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const src = e.dataTransfer.getData('text/plain');
+              if (!onReorderChartOrder || !src) return;
+              const current = chartOrder.slice().filter(id => id !== src);
+              current.push(src);
+              onReorderChartOrder(current);
+            }}
+          />
         </div>
       </LayoutGroup>
 

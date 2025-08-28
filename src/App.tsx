@@ -345,6 +345,7 @@ export default function App() {
             toggleMinimize={toggleMinimize}
             toggleSize={toggleSize}
             chartOrder={chartOrder.sp500}
+            onReorderChartOrder={(order) => setChartOrder(prev => ({ ...prev, sp500: order }))}
           />
         )}
 
@@ -369,6 +370,7 @@ export default function App() {
             toggleMinimize={toggleMinimize}
             toggleSize={toggleSize}
             chartOrder={chartOrder.nasdaq100}
+            onReorderChartOrder={(order) => setChartOrder(prev => ({ ...prev, nasdaq100: order }))}
           />
         )}
 
@@ -399,6 +401,7 @@ export default function App() {
             toggleMinimize={toggleMinimize}
             toggleSize={toggleSize}
             chartOrder={chartOrder.portfolio}
+            onReorderChartOrder={(order) => setChartOrder(prev => ({ ...prev, portfolio: order }))}
           />
         )}
 
@@ -429,6 +432,7 @@ export default function App() {
             toggleMinimize={toggleMinimize}
             toggleSize={toggleSize}
             chartOrder={chartOrder.drawdown}
+            onReorderChartOrder={(order) => setChartOrder(prev => ({ ...prev, drawdown: order }))}
           />
         )}
         {activeTab === 'data' && <DataTab />}

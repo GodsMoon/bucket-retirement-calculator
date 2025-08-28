@@ -11,16 +11,45 @@ interface ChartProps {
   size: 'full' | 'half';
   children: React.ReactNode;
   minimizable: boolean;
+  // Drag & drop (optional)
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
-const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, onToggleSize, size, children, minimizable }) => {
+const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, onToggleSize, size, children, minimizable, onDragStart, onDragEnd }) => {
   const { chart: colorClass } = getChartColor(chartId);
+  const sectionRef = React.useRef<HTMLElement | null>(null);
   return (
     <motion.section
       layout
       transition={{ duration: 0.33 }}
       className={`bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full border-l-4 ${colorClass}`}
+      ref={sectionRef as React.Ref<HTMLElement>}
     >
+      {/* Drag bar handle */}
+      <div
+        className="h-3 -mt-2 -mx-4 mb-2 px-4 rounded-t-2xl cursor-grab active:cursor-grabbing bg-slate-200/60 dark:bg-slate-700/60"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', chartId);
+          // Use the section as drag image for a full-card ghost
+          const el = sectionRef.current as unknown as Element | null;
+          if (el && e.dataTransfer.setDragImage) {
+            try {
+              e.dataTransfer.setDragImage(el as Element, 20, 20);
+            } catch {
+              // no-op fallback
+            }
+          }
+          onDragStart?.(e);
+        }}
+        onDragEnd={(e) => {
+          onDragEnd?.(e);
+        }}
+        title="Drag to reorder"
+        aria-label="Drag chart to reorder"
+      />
       <div className="flex items-top justify-between">
         <h2 className="font-semibold mb-2 pt-2">{title}</h2>
         <div className="flex items-top">

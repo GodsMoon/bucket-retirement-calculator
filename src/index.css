@@ -4,3 +4,32 @@
 
 /* optional sanity check: this will make the page obvious if Tailwind compiled */
 body { @apply bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100; }
+
+/* Recharts tooltip theming (light/dark) */
+:root {
+  --tooltip-bg: #ffffff;
+
+  --tooltip-border: #e2e8f0; /* slate-200 */
+  --tooltip-shadow: 0 4px 12px rgba(2, 6, 23, 0.08); /* subtle */
+}
+
+.dark {
+  --tooltip-bg: #0f172a; /* slate-900 */
+
+  --tooltip-border: #334155; /* slate-700 */
+  --tooltip-shadow: 0 6px 16px rgba(148, 163, 184, 0.12);
+}
+
+/* Override Recharts inline defaults */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--tooltip-bg) !important;
+  color: var(--tooltip-text) !important;
+  border: 1px solid var(--tooltip-border) !important;
+  box-shadow: var(--tooltip-shadow) !important;
+  border-radius: 0.375rem !important; /* rounded-md */
+}
+
+/* Keep label themed, allow series items to keep their own colors */
+.recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: var(--tooltip-text) !important;
+}

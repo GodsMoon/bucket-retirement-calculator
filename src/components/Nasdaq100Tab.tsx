@@ -234,16 +234,16 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
 
-  const handleDropOn = (targetId: string, sourceId: string) => {
+  const handleSwap = (targetId: string, sourceId: string) => {
     if (!onReorderChartOrder) return;
     if (!sourceId || sourceId === targetId) return;
     const current = chartOrder.slice();
-    const fromIdx = current.indexOf(sourceId);
-    const toIdx = current.indexOf(targetId);
-    if (fromIdx === -1 || toIdx === -1) return;
-    current.splice(fromIdx, 1);
-    const insertAt = current.indexOf(targetId);
-    current.splice(insertAt, 0, sourceId);
+    const srcIdx = current.indexOf(sourceId);
+    const tgtIdx = current.indexOf(targetId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    const tmp = current[srcIdx];
+    current[srcIdx] = current[tgtIdx];
+    current[tgtIdx] = tmp;
     onReorderChartOrder(current);
   };
 
@@ -415,28 +415,29 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 onDrop={(e) => {
                   e.preventDefault();
                   const src = e.dataTransfer.getData('text/plain');
-                  // match size to target if different
-                  if (src && src !== chartId && chartStates[src] && chartStates[chartId] && chartStates[src].size !== chartStates[chartId].size) {
-                    toggleSize(src);
-                  }
-                  handleDropOn(chartId, src);
+                  handleSwap(chartId, src);
                   setDraggingId(null);
                   setOverId(null);
                 }}
               >
-                {draggingId && overId === chartId && (
-                  <div className="pointer-events-none absolute inset-0 rounded-2xl bg-slate-800/90 text-white flex items-center justify-center font-semibold text-sm">Drop Here</div>
+                {draggingId && (
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl border-4 border-dashed border-blue-400 flex items-center justify-center bg-slate-900/70 dark:bg-white/70">
+                    <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+                  </div>
                 )}
-                {React.cloneElement(charts[chartId] as React.ReactElement, {
-                  onDragStart: () => setDraggingId(chartId),
-                  onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                })}
+                {React.cloneElement(
+                  charts[chartId] as React.ReactElement<any>,
+                  {
+                    onDragStart: () => setDraggingId(chartId),
+                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                  } as any
+                )}
               </motion.div>
             )
           ))}
           {draggingId && (
             <div
-              className="h-24 rounded-2xl bg-slate-800/90 text-white flex items-center justify-center text-xs font-semibold transform scale-110"
+              className="h-24 rounded-2xl bg-slate-900/70 dark:bg-white/70 flex items-center justify-center text-xs font-semibold transform scale-110 border-4 border-dashed border-blue-400"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -445,7 +446,9 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 setDraggingId(null);
                 setOverId(null);
               }}
-            >Drop Here</div>
+            >
+              <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+            </div>
           )}
         </div>
       </LayoutGroup>

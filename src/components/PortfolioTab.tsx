@@ -819,34 +819,36 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                   const src = e.dataTransfer.getData('text/plain');
                   if (!onReorderChartOrder || !src || src === chartId) return;
                   const current = chartOrder.slice();
-                  const fromIdx = current.indexOf(src);
-                  const toIdx = current.indexOf(chartId);
-                  if (fromIdx === -1 || toIdx === -1) return;
-                  current.splice(fromIdx, 1);
-                  const insertAt = current.indexOf(chartId);
-                  current.splice(insertAt, 0, src);
-                  if (chartStates[src] && chartStates[chartId] && chartStates[src].size !== chartStates[chartId].size) {
-                    toggleSize(src);
-                  }
+                  const srcIdx = current.indexOf(src);
+                  const tgtIdx = current.indexOf(chartId);
+                  if (srcIdx === -1 || tgtIdx === -1) return;
+                  const tmp = current[srcIdx];
+                  current[srcIdx] = current[tgtIdx];
+                  current[tgtIdx] = tmp;
                   onReorderChartOrder(current);
                   setDraggingId(null);
                   setOverId(null);
                 }}
               >
-                {draggingId && overId === chartId && (
-                  <div className="pointer-events-none absolute inset-0 rounded-2xl bg-slate-800/90 text-white flex items-center justify-center font-semibold text-sm">Drop Here</div>
+                {draggingId && (
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl border-4 border-dashed border-blue-400 flex items-center justify-center bg-slate-900/70 dark:bg-white/70">
+                    <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+                  </div>
                 )}
-                {React.cloneElement(charts[chartId] as React.ReactElement, {
-                  onDragStart: () => setDraggingId(chartId),
-                  onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                })}
+                {React.cloneElement(
+                  charts[chartId] as React.ReactElement<any>,
+                  {
+                    onDragStart: () => setDraggingId(chartId),
+                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
+                  } as any
+                )}
               </motion.div>
             )
           ))}
           {/* End drop target */}
           {draggingId && (
             <div
-              className="h-24 rounded-2xl bg-slate-800/90 text-white flex items-center justify-center text-xs font-semibold transform scale-110"
+              className="h-24 rounded-2xl bg-slate-900/70 dark:bg-white/70 flex items-center justify-center text-xs font-semibold transform scale-110 border-4 border-dashed border-blue-400"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -858,7 +860,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 setDraggingId(null);
                 setOverId(null);
               }}
-            >Drop Here</div>
+            >
+              <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+            </div>
           )}
         </div>
       </LayoutGroup>

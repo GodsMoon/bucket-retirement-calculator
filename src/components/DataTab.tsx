@@ -53,12 +53,12 @@ export default function DataTab() {
             {rows.map(r => (
               <tr key={r.year} className="border-b border-slate-200 dark:border-slate-700">
                 <td className="px-2 py-1 text-left">{r.year}</td>
-                <td className="px-2 py-1 text-right">{r.sp500 != null ? r.sp500.toFixed(2) : "–"}</td>
-                <td className="px-2 py-1 text-right">{r.nasdaq100 != null ? r.nasdaq100.toFixed(2) : "–"}</td>
-                <td className="px-2 py-1 text-right">{r.bitcoin != null ? r.bitcoin.toFixed(2) : "–"}</td>
-                <td className="px-2 py-1 text-right">{r.bonds != null ? r.bonds.toFixed(2) : "–"}</td>
-                <td className="px-2 py-1 text-right">{r.inflation != null ? r.inflation.toFixed(2) : "–"}</td>
-                <td className="px-2 py-1 text-right">{r.cape != null ? r.cape.toFixed(2) : "–"}</td>
+                <td className="px-2 py-1 text-right">{r.sp500 != null ? `${r.sp500.toFixed(2)}%` : "—"}</td>
+                <td className="px-2 py-1 text-right">{r.nasdaq100 != null ? `${r.nasdaq100.toFixed(2)}%` : "—"}</td>
+                <td className="px-2 py-1 text-right">{r.bitcoin != null ? `${r.bitcoin.toFixed(2)}%` : "—"}</td>
+                <td className="px-2 py-1 text-right">{r.bonds != null ? `${r.bonds.toFixed(2)}%` : "—"}</td>
+                <td className="px-2 py-1 text-right">{r.inflation != null ? `${r.inflation.toFixed(2)}%` : "—"}</td>
+                <td className="px-2 py-1 text-right">{r.cape != null ? r.cape.toFixed(2) : "—"}</td>
               </tr>
             ))}
           </tbody>

@@ -8,7 +8,7 @@ import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
-import Chart from "./Chart";
+import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 
@@ -352,7 +352,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
   const sampleRun = sims[0];
 
-  const charts: Record<string, React.ReactNode> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = {
     'portfolio-trajectory': (
       <Chart
         chartId="portfolio-trajectory"
@@ -835,12 +835,12 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement(
-                  charts[chartId] as React.ReactElement<any>,
+                {React.cloneElement<ChartProps>(
+                  charts[chartId],
                   {
                     onDragStart: () => setDraggingId(chartId),
                     onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  } as any
+                  }
                 )}
               </motion.div>
             )

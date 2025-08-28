@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { getChartColor } from '../chartColors';
 
-interface ChartProps {
+export interface ChartProps {
   chartId: string;
   title: string;
   onRefresh?: () => void;

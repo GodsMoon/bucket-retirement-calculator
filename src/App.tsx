@@ -172,6 +172,37 @@ export default function App() {
     "drawdown-sample-5-trajectory": { minimized: false, title: "Sample Run 5 Trajectory", tab: "drawdown", size: 'half' },
   });
 
+  // Ensure new chart IDs are present even across hot reloads
+  useEffect(() => {
+    setChartStates(prev => {
+      const next = { ...prev };
+      const ensure = (id: string, state: ChartState) => { if (!next[id]) next[id] = state; };
+      // SP500
+      ensure("sp500-median-trajectory", { minimized: false, title: "Median Sample Run Trajectory", tab: "sp500", size: 'half' });
+      [2,3,4,5].forEach(i => ensure(`sp500-sample-${i}-trajectory`, { minimized: false, title: `Sample Run ${i} Trajectory`, tab: 'sp500', size: 'half' }));
+      // Nasdaq100
+      ensure("nasdaq100-median-trajectory", { minimized: false, title: "Median Sample Run Trajectory", tab: "nasdaq100", size: 'half' });
+      [2,3,4,5].forEach(i => ensure(`nasdaq100-sample-${i}-trajectory`, { minimized: false, title: `Sample Run ${i} Trajectory`, tab: 'nasdaq100', size: 'half' }));
+      // Portfolio
+      ensure("portfolio-median-trajectory", { minimized: false, title: "Median Sample Run Trajectory", tab: "portfolio", size: 'half' });
+      ensure("portfolio-median-asset-allocation", { minimized: false, title: "Median Sample Run Asset Allocation", tab: "portfolio", size: 'half' });
+      ensure("portfolio-asset-allocation", { minimized: false, title: "Sample Run 1 Asset Allocation", tab: "portfolio", size: 'half' });
+      [2,3,4,5].forEach(i => {
+        ensure(`portfolio-sample-${i}-trajectory`, { minimized: false, title: `Sample Run ${i} Trajectory`, tab: 'portfolio', size: 'half' });
+        ensure(`portfolio-sample-${i}-asset-allocation`, { minimized: false, title: `Sample Run ${i} Asset Allocation`, tab: 'portfolio', size: 'half' });
+      });
+      // Drawdown
+      ensure("drawdown-median-trajectory", { minimized: false, title: "Median Sample Run Trajectory", tab: "drawdown", size: 'half' });
+      ensure("drawdown-median-asset-allocation", { minimized: false, title: "Median Sample Run Asset Allocation", tab: "drawdown", size: 'half' });
+      ensure("drawdown-asset-allocation", { minimized: false, title: "Sample Run 1 Asset Allocation", tab: "drawdown", size: 'half' });
+      [2,3,4,5].forEach(i => {
+        ensure(`drawdown-sample-${i}-trajectory`, { minimized: false, title: `Sample Run ${i} Trajectory`, tab: 'drawdown', size: 'half' });
+        ensure(`drawdown-sample-${i}-asset-allocation`, { minimized: false, title: `Sample Run ${i} Asset Allocation`, tab: 'drawdown', size: 'half' });
+      });
+      return next;
+    });
+  }, []);
+
   const [chartOrder, setChartOrder] = useState<Record<string, string[]>>({
     sp500: [
       "sp500-trajectory",

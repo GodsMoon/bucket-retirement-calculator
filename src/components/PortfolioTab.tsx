@@ -356,11 +356,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     'portfolio-trajectory': (
       <Chart
         chartId="portfolio-trajectory"
-        title={chartStates['portfolio-trajectory'].title}
+        title={chartStates['portfolio-trajectory']?.title ?? 'Portfolio Trajectory Bands'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
         onToggleSize={() => toggleSize('portfolio-trajectory')}
-        size={chartStates['portfolio-trajectory'].size}
+        size={chartStates['portfolio-trajectory']?.size ?? 'full'}
         minimizable={true}
       >
         {stats && (
@@ -386,11 +386,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     'portfolio-median-asset-allocation': (
       <Chart
         chartId="portfolio-median-asset-allocation"
-        title={chartStates['portfolio-median-asset-allocation'].title}
+        title={chartStates['portfolio-median-asset-allocation']?.title ?? 'Median Sample Run Asset Allocation'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-asset-allocation')}
         onToggleSize={() => toggleSize('portfolio-median-asset-allocation')}
-        size={chartStates['portfolio-median-asset-allocation'].size}
+        size={chartStates['portfolio-median-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -426,11 +426,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     'portfolio-median-trajectory': (
       <Chart
         chartId="portfolio-median-trajectory"
-        title={chartStates['portfolio-median-trajectory'].title}
+        title={chartStates['portfolio-median-trajectory']?.title ?? 'Median Sample Run Trajectory'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-trajectory')}
         onToggleSize={() => toggleSize('portfolio-median-trajectory')}
-        size={chartStates['portfolio-median-trajectory'].size}
+        size={chartStates['portfolio-median-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -466,11 +466,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     'portfolio-asset-allocation': (
       <Chart
         chartId="portfolio-asset-allocation"
-        title={chartStates['portfolio-asset-allocation'].title}
+        title={chartStates['portfolio-asset-allocation']?.title ?? 'Sample Run 1 Asset Allocation'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
         onToggleSize={() => toggleSize('portfolio-asset-allocation')}
-        size={chartStates['portfolio-asset-allocation'].size}
+        size={chartStates['portfolio-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
         {sampleRun && (
@@ -506,11 +506,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     'portfolio-sample': (
       <Chart
         chartId="portfolio-sample"
-        title={chartStates['portfolio-sample'].title}
+        title={chartStates['portfolio-sample']?.title ?? 'Sample Run 1 Trajectory'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
         onToggleSize={() => toggleSize('portfolio-sample')}
-        size={chartStates['portfolio-sample'].size}
+        size={chartStates['portfolio-sample']?.size ?? 'half'}
         minimizable={true}
       >
         {sampleRun && (
@@ -549,11 +549,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       acc[`portfolio-sample-${i}-asset-allocation`] = (
         <Chart
           chartId={`portfolio-sample-${i}-asset-allocation`}
-          title={chartStates[`portfolio-sample-${i}-asset-allocation`].title}
+          title={chartStates[`portfolio-sample-${i}-asset-allocation`]?.title ?? `Sample Run ${i} Asset Allocation`}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-asset-allocation`)}
           onToggleSize={() => toggleSize(`portfolio-sample-${i}-asset-allocation`)}
-          size={chartStates[`portfolio-sample-${i}-asset-allocation`].size}
+          size={chartStates[`portfolio-sample-${i}-asset-allocation`]?.size ?? 'half'}
           minimizable={true}
         >
           <div className="h-72">
@@ -587,11 +587,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       acc[`portfolio-sample-${i}-trajectory`] = (
         <Chart
           chartId={`portfolio-sample-${i}-trajectory`}
-          title={chartStates[`portfolio-sample-${i}-trajectory`].title}
+          title={chartStates[`portfolio-sample-${i}-trajectory`]?.title ?? `Sample Run ${i} Trajectory`}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-trajectory`)}
           onToggleSize={() => toggleSize(`portfolio-sample-${i}-trajectory`)}
-          size={chartStates[`portfolio-sample-${i}-trajectory`].size}
+          size={chartStates[`portfolio-sample-${i}-trajectory`]?.size ?? 'half'}
           minimizable={true}
         >
           <div className="h-72">
@@ -799,7 +799,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       <LayoutGroup>
         <div className="grid md:grid-cols-2 gap-6">
           {chartOrder.map((chartId: string) => (
-            !(chartStates[chartId]?.minimized) && (
+            charts[chartId] && !(chartStates[chartId]?.minimized) && (
               <motion.div
                 key={chartId}
                 layout

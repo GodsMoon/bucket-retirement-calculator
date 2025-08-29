@@ -839,20 +839,24 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               </motion.div>
             )
           ))}
-          <div
-            className="h-24 rounded-2xl bg-slate-900/70 dark:bg-white/70 flex items-center justify-center text-xs font-semibold transform scale-110 border-4 border-dashed border-blue-400"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const src = e.dataTransfer.getData('text/plain');
-              if (!onReorderChartOrder || !src) return;
-              const current = chartOrder.slice().filter(id => id !== src);
-              current.push(src);
-              onReorderChartOrder(current);
-            }}
-          >
-            <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
-          </div>
+          {draggingId && (
+            <div
+              className="h-24 rounded-2xl bg-slate-900/70 dark:bg-white/70 flex items-center justify-center text-xs font-semibold transform scale-110 border-4 border-dashed border-blue-400"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const src = e.dataTransfer.getData('text/plain');
+                if (!onReorderChartOrder || !src) return;
+                const current = chartOrder.slice().filter(id => id !== src);
+                current.push(src);
+                onReorderChartOrder(current);
+                setDraggingId(null);
+                setOverId(null);
+              }}
+            >
+              <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
+            </div>
+          )}
         </div>
       </LayoutGroup>
 

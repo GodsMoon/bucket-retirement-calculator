@@ -259,11 +259,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     'drawdown-trajectory': (
       <Chart
         chartId="drawdown-trajectory"
-        title={chartStates['drawdown-trajectory'].title}
+        title={chartStates['drawdown-trajectory']?.title ?? 'Portfolio Trajectory Bands'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-trajectory')}
         onToggleSize={() => toggleSize('drawdown-trajectory')}
-        size={chartStates['drawdown-trajectory'].size}
+        size={chartStates['drawdown-trajectory']?.size ?? 'full'}
         minimizable={true}
       >
         {stats && (
@@ -292,11 +292,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     'drawdown-median-asset-allocation': (
       <Chart
         chartId="drawdown-median-asset-allocation"
-        title={chartStates['drawdown-median-asset-allocation'].title}
+        title={chartStates['drawdown-median-asset-allocation']?.title ?? 'Median Sample Run Asset Allocation'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-asset-allocation')}
         onToggleSize={() => toggleSize('drawdown-median-asset-allocation')}
-        size={chartStates['drawdown-median-asset-allocation'].size}
+        size={chartStates['drawdown-median-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -332,11 +332,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     'drawdown-median-trajectory': (
       <Chart
         chartId="drawdown-median-trajectory"
-        title={chartStates['drawdown-median-trajectory'].title}
+        title={chartStates['drawdown-median-trajectory']?.title ?? 'Median Sample Run Trajectory'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-trajectory')}
         onToggleSize={() => toggleSize('drawdown-median-trajectory')}
-        size={chartStates['drawdown-median-trajectory'].size}
+        size={chartStates['drawdown-median-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
         {stats?.medianRun && (
@@ -372,11 +372,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     'drawdown-asset-allocation': (
       <Chart
         chartId="drawdown-asset-allocation"
-        title={chartStates['drawdown-asset-allocation'].title}
+        title={chartStates['drawdown-asset-allocation']?.title ?? 'Sample Run 1 Asset Allocation'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
         onToggleSize={() => toggleSize('drawdown-asset-allocation')}
-        size={chartStates['drawdown-asset-allocation'].size}
+        size={chartStates['drawdown-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
         {sampleRun && (
@@ -412,11 +412,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     'drawdown-sample': (
       <Chart
         chartId="drawdown-sample"
-        title={chartStates['drawdown-sample'].title}
+        title={chartStates['drawdown-sample']?.title ?? 'Sample Run 1 Trajectory'}
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-sample')}
         onToggleSize={() => toggleSize('drawdown-sample')}
-        size={chartStates['drawdown-sample'].size}
+        size={chartStates['drawdown-sample']?.size ?? 'half'}
         minimizable={true}
       >
         {sampleRun && (
@@ -468,11 +468,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       acc[`drawdown-sample-${i}-asset-allocation`] = (
         <Chart
           chartId={`drawdown-sample-${i}-asset-allocation`}
-          title={chartStates[`drawdown-sample-${i}-asset-allocation`].title}
+          title={chartStates[`drawdown-sample-${i}-asset-allocation`]?.title ?? `Sample Run ${i} Asset Allocation`}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-asset-allocation`)}
           onToggleSize={() => toggleSize(`drawdown-sample-${i}-asset-allocation`)}
-          size={chartStates[`drawdown-sample-${i}-asset-allocation`].size}
+          size={chartStates[`drawdown-sample-${i}-asset-allocation`]?.size ?? 'half'}
           minimizable={true}
         >
           <div className="h-72">
@@ -506,11 +506,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       acc[`drawdown-sample-${i}-trajectory`] = (
         <Chart
           chartId={`drawdown-sample-${i}-trajectory`}
-          title={chartStates[`drawdown-sample-${i}-trajectory`].title}
+          title={chartStates[`drawdown-sample-${i}-trajectory`]?.title ?? `Sample Run ${i} Trajectory`}
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-trajectory`)}
           onToggleSize={() => toggleSize(`drawdown-sample-${i}-trajectory`)}
-          size={chartStates[`drawdown-sample-${i}-trajectory`].size}
+          size={chartStates[`drawdown-sample-${i}-trajectory`]?.size ?? 'half'}
           minimizable={true}
         >
           <div className="h-72">
@@ -793,7 +793,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       <LayoutGroup>
         <div className="grid md:grid-cols-2 gap-6">
           {chartOrder.map((chartId: string) => (
-            !(chartStates[chartId]?.minimized) && (
+            charts[chartId] && !(chartStates[chartId]?.minimized) && (
               <motion.div
                 key={chartId}
                 layout

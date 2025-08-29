@@ -178,7 +178,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-trajectory')}
         onToggleSize={() => toggleSize('nasdaq100-trajectory')}
-        size={chartStates['nasdaq100-trajectory'].size}
+        size={chartStates['nasdaq100-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
         {stats && (
@@ -251,7 +251,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-sample')}
         onToggleSize={() => toggleSize('nasdaq100-sample')}
-        size={chartStates['nasdaq100-sample'].size}
+        size={chartStates['nasdaq100-sample']?.size ?? 'half'}
         minimizable={true}
       >
         {sampleRun && (
@@ -495,7 +495,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
       <LayoutGroup>
         <div className="grid md:grid-cols-2 gap-6">
           {chartOrder.map((chartId: string) => (
-            !(chartStates[chartId]?.minimized) && (
+            charts[chartId] && !(chartStates[chartId]?.minimized) && (
               <motion.div
                 key={chartId}
                 layout

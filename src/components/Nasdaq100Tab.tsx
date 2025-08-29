@@ -5,7 +5,7 @@ import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
-import Chart from "./Chart";
+import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 
@@ -158,7 +158,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   const sampleRun = sims[0];
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-  const charts: Record<string, React.ReactNode> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = {
     'nasdaq100-trajectory': (
       <Chart
         chartId="nasdaq100-trajectory"
@@ -428,12 +428,12 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement(
-                  charts[chartId] as React.ReactElement<any>,
+                {React.cloneElement<ChartProps>(
+                  charts[chartId],
                   {
                     onDragStart: () => setDraggingId(chartId),
                     onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  } as any
+                  }
                 )}
               </motion.div>
             )

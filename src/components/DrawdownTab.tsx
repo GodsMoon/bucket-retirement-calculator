@@ -6,7 +6,7 @@ import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
 import { bitcoinReturnMultiplier } from "../lib/bitcoin";
-import Chart from "./Chart";
+import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
 import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
@@ -255,7 +255,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
   const sampleRun = sims[0];
 
-  const charts: Record<string, React.ReactNode> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = {
     'drawdown-trajectory': (
       <Chart
         chartId="drawdown-trajectory"
@@ -542,7 +542,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         </Chart>
       );
       return acc;
-    }, {} as Record<string, React.ReactNode>),
+    }, {} as Record<string, React.ReactElement<ChartProps>>),
   };
 
   return (
@@ -829,12 +829,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement(
-                  charts[chartId] as React.ReactElement<any>,
+                {React.cloneElement<ChartProps>(
+                  charts[chartId],
                   {
                     onDragStart: () => setDraggingId(chartId),
                     onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  } as any
+                  }
                 )}
               </motion.div>
             )

@@ -150,9 +150,21 @@ const SPTab: React.FC<SPTabProps> = ({
       });
     }
 
+    // Build median run (balances and withdrawals)
+    const medianRun = {
+      balances: [] as number[],
+      withdrawals: [] as number[],
+    };
+    for (let t = 0; t <= horizonYears; t++) {
+      medianRun.balances.push(percentile(sims.map(s => s.balances[t]), 0.5));
+      if (t < horizonYears) {
+        medianRun.withdrawals.push(percentile(sims.map(s => s.withdrawals[t]), 0.5));
+      }
+    }
+
     const medianFifthYearWithdrawal = horizon >= 5 ? percentile(sims.map(s => s.withdrawals[4]), 0.5) : 0;
 
-    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal };
+    return { successRate, endingBalances, bands, ...drawdownStats, medianFifthYearWithdrawal, medianRun };
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
@@ -187,6 +199,46 @@ const SPTab: React.FC<SPTabProps> = ({
                 <Area type="monotone" dataKey="p25" name="25th %ile" fillOpacity={0.15} stroke="#8ac" fill="#8ac" />
                 <Area type="monotone" dataKey="p10" name="10th %ile" fillOpacity={0.15} stroke="#acd" fill="#acd" />
               </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Chart>
+    ),
+    'sp500-median-trajectory': (
+      <Chart
+        chartId="sp500-median-trajectory"
+        title="Median Sample Run Trajectory"
+        onRefresh={onRefresh}
+        onMinimize={() => toggleMinimize('sp500-median-trajectory')}
+        onToggleSize={() => toggleSize('sp500-median-trajectory')}
+        size={chartStates['sp500-median-trajectory']?.size ?? 'half'}
+        minimizable={true}
+      >
+        {stats?.medianRun && (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={stats.medianRun.balances.map((b, i) => ({
+                  year: i,
+                  balance: b,
+                  withdrawal: stats.medianRun.withdrawals[i],
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis yAxisId="left" tickFormatter={(v: number) => currency.format(v)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => currency.format(v)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    return [`${currency.format(value)}`, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         )}
@@ -232,6 +284,49 @@ const SPTab: React.FC<SPTabProps> = ({
         )}
       </Chart>
     ),
+    ...[2, 3, 4, 5].reduce((acc, i) => {
+      const run = sims[i - 1];
+      if (!run) return acc;
+      acc[`sp500-sample-${i}-trajectory`] = (
+        <Chart
+          chartId={`sp500-sample-${i}-trajectory`}
+          title={`Sample Run ${i} Trajectory`}
+          onRefresh={onRefresh}
+          onMinimize={() => toggleMinimize(`sp500-sample-${i}-trajectory`)}
+          onToggleSize={() => toggleSize(`sp500-sample-${i}-trajectory`)}
+          size={chartStates[`sp500-sample-${i}-trajectory`]?.size ?? 'half'}
+          minimizable={true}
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={run.balances.map((b, idx) => ({
+                  year: idx,
+                  balance: b,
+                  withdrawal: run.withdrawals[idx],
+                }))}
+                margin={{ left: 32, right: 8, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis yAxisId="left" tickFormatter={(v: number) => currency.format(v)} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => currency.format(v)} />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    return [`${currency.format(value)}`, name];
+                  }}
+                  itemSorter={(item) => (item.dataKey === "balance" ? -1 : 1)}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="balance" yAxisId="left" name="Total Balance" dot={false} strokeWidth={2} stroke="#8884d8" />
+                <Line type="monotone" dataKey="withdrawal" yAxisId="right" name="Withdrawal" dot={false} strokeWidth={2} stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Chart>
+      );
+      return acc;
+    }, {} as Record<string, React.ReactElement<ChartProps>>),
   };
 
   // Drag & drop state for reordering
@@ -401,12 +496,12 @@ const SPTab: React.FC<SPTabProps> = ({
       <LayoutGroup>
         <div className="grid md:grid-cols-2 gap-6">
           {chartOrder.map((chartId: string) => (
-            !chartStates[chartId].minimized && (
+            !(chartStates[chartId]?.minimized) && (
               <motion.div
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
+                className={`${((chartStates[chartId]?.size ?? 'half') === 'full') ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
                 data-chart-id={chartId}
                 onDragOver={(e) => {
                   if (!draggingId) return;

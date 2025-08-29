@@ -793,12 +793,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       <LayoutGroup>
         <div className="grid md:grid-cols-2 gap-6">
           {chartOrder.map((chartId: string) => (
-            !chartStates[chartId].minimized && (
+            !(chartStates[chartId]?.minimized) && (
               <motion.div
                 key={chartId}
                 layout
                 transition={{ duration: 0.33 }}
-                className={`${chartStates[chartId].size === 'full' ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
+                className={`${((chartStates[chartId]?.size ?? 'half') === 'full') ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
                 data-chart-id={chartId}
                 onDragOver={(e) => {
                   if (!draggingId) return;

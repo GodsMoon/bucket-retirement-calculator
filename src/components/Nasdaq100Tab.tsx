@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { LayoutGroup, motion } from "framer-motion";
 import { useData } from "../data/DataContext";
@@ -96,6 +96,17 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   const years = useMemo(() => nasdaq100.map(d => d.year).sort((a, b) => a - b), [nasdaq100]);
   const availableMultipliers = useMemo(() => nasdaq100.map(d => pctToMult(d.returnPct)), [nasdaq100]);
 
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const id = setTimeout(onRefresh, 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startBalance, horizon, withdrawRate, inflationRate, inflationAdjust, mode, numRuns, seed, startYear]);
+
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
     const runs: RunResult[] = [];
@@ -127,7 +138,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, numRuns, availableMultipliers, horizon, startBalance, withdrawRate, inflationRate, inflationAdjust, startYear, refreshCounter]);
+  }, [availableMultipliers, nasdaq100, refreshCounter]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;

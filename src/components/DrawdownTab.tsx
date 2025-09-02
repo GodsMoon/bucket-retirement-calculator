@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid, ReferenceDot } from "recharts";
 import { LayoutGroup, motion } from "framer-motion";
 import type { DrawdownStrategies } from "../App";
@@ -138,6 +138,17 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     return map;
   }, [years, bitcoin, sp500, nasdaq100, btcReturns, bondReturns]);
 
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const id = setTimeout(onRefresh, 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawdownWithdrawalStrategy, startBalance, cash, spy, qqq, bitcoin, bonds, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, inflationRate, mode, numRuns, seed, startYear, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
+
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];
     const initialW = initialWithdrawalAmount / startBalance;
@@ -235,30 +246,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    cash,
-    spy,
-    qqq,
-    bitcoin,
-    bonds,
-    horizon,
-    initialWithdrawalAmount,
-    inflationRate,
-    inflationAdjust,
-    mode,
-    numRuns,
-    startYear,
-    returnsByYear,
-    startBalance,
-    years,
-    refreshCounter,
-    strategy,
-    guytonKlingerParams,
-    floorAndCeilingParams,
-    capeBasedParams,
-    fixedPercentageParams,
-    cape,
-  ]);
+  }, [refreshCounter]);
 
 
   const stats = useMemo(() => {

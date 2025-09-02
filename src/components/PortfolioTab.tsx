@@ -7,6 +7,7 @@ import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats
 import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
+import NumericInput from "./NumericInput";
 import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
@@ -657,8 +658,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           <h3 className="font-semibold">Starting Withdrawal Rate:</h3>
           <div className="flex flex-col lg:flex-row lg:gap-x-4 gap-y-2">
             <label className="block text-sm pt-2 flex-1">First Withdrawal (%)
-              <input type="number" className="mt-1 w-3/4 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={withdrawRate} step={0.01} onChange={e => onParamChange('withdrawRate', Number(e.target.value))} />
-              <span className="ml-2">%</span>
+              <div className="mt-1 inline-flex items-center">
+                <NumericInput
+                  className="w-28 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+                  value={withdrawRate}
+                  step={0.01}
+                  precision={2}
+                  onChange={(v) => onParamChange('withdrawRate', v)}
+                />
+                <span className="ml-2">%</span>
+              </div>
             </label>
             <div className={`flex-1 p-2 rounded-lg ${isInitialAmountLocked ? 'bg-green-100 dark:bg-green-900' : ''}`}>
               <label className="block text-sm flex-1">First Withdrawal ($)</label>
@@ -684,7 +693,12 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           </div>
           <label className="block text-sm">Assumed Inflation Rate
             <div className="flex items-center mt-1">
-              <input type="number" className="w-1/3 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={Math.round(inflationRate * 400) / 4} step={0.25} onChange={e => onParamChange('inflationRate', parseFloat(e.target.value) / 100)} />
+              <NumericInput
+                className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+                value={Math.round(inflationRate * 400) / 4}
+                step={0.25}
+                onChange={(v) => onParamChange('inflationRate', v / 100)}
+              />
               <span className="ml-2">%</span>
             </div>
           </label>
@@ -719,7 +733,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
             </select>
           </label>
           <label className="block text-sm">Horizon (years)
-            <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={horizon} onChange={e => onParamChange('horizon', Math.max(1, Number(e.target.value)))} />
+            <NumericInput
+              className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+              value={horizon}
+              step={1}
+              min={1}
+              onChange={(v) => onParamChange('horizon', Math.max(1, Math.round(v)))}
+            />
           </label>
           <div className="space-y-2 text-sm">
             <label className="flex items-center gap-2">

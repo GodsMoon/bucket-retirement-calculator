@@ -333,7 +333,10 @@ export default function App() {
       case 'initialWithdrawalAmount': {
         const newAmount = parseFloat(value as string);
         setInitialWithdrawalAmount(newAmount);
-        setWithdrawRate(round2((newAmount / activeStartBalance) * 100));
+        // Do not round to 2 decimals here; keep precision so small dollar amounts
+        // do not collapse to 0% and reset the $ field while typing.
+        const computedRate = (activeStartBalance === 0) ? 0 : ((newAmount / activeStartBalance) * 100);
+        setWithdrawRate(computedRate);
         break;
       }
       case 'inflationAdjust': setInflationAdjust(value as boolean); break;

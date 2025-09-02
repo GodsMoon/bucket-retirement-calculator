@@ -55,31 +55,35 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({ value, onChange, step = 1
     onChange(newValue);
   };
 
+  // Apply styles to wrapper so arrow buttons appear inside the field
+  const wrapperClass = `relative ${props.className ?? ''}`;
+
   return (
-    <div className="relative">
+    <div className={wrapperClass}>
       <input
         type="text"
         inputMode="numeric"
-        {...props}
         value={displayValue}
         onChange={handleChange}
         onBlur={handleBlur}
-        className={`${props.className} pr-8`} // Add padding to the right for the buttons
+        className={"w-full bg-transparent outline-none pr-3"}
       />
-      <div className="absolute inset-y-0 right-0 flex flex-col items-center justify-center">
+      <div className="absolute inset-y-0 right-0 w-6 flex flex-col">
         <button
           type="button"
           onClick={() => handleStep('up')}
-          className="h-1/2 px-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          className="h-1/2 px-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           tabIndex={-1}
+          aria-label="Increase"
         >
           <span className="text-xs">▲</span>
         </button>
         <button
           type="button"
           onClick={() => handleStep('down')}
-          className="h-1/2 px-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          className="h-1/2 px-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           tabIndex={-1}
+          aria-label="Decrease"
         >
           <span className="text-xs">▼</span>
         </button>

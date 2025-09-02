@@ -4,6 +4,7 @@ import { LayoutGroup, motion } from "framer-motion";
 import type { DrawdownStrategy } from "../App";
 import { useData } from "../data/DataContext";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import Chart, { type ChartProps } from "./Chart";
@@ -242,11 +243,10 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     const spyYears = new Set(sp500.map(d => d.year));
     const qqqYears = new Set(nasdaq100.map(d => d.year));
     const bondYears = new Set(bondReturns.map(d => d.year));
-    const btcYears = new Set(btcReturns.map(d => d.year));
     return Array.from(spyYears)
-      .filter(y => qqqYears.has(y) && bondYears.has(y) && btcYears.has(y))
+      .filter(y => qqqYears.has(y) && bondYears.has(y))
       .sort((a, b) => a - b);
-  }, [sp500, nasdaq100, bondReturns, btcReturns]);
+  }, [sp500, nasdaq100, bondReturns]);
 
   const returnsByYear = useMemo(() => {
     const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bonds: number }>();
@@ -258,7 +258,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
-        bitcoin: bitcoin > 0 ? btcReturnsMap.get(year)! : 1.0,
+        bitcoin: bitcoin > 0 ? (btcReturnsMap.get(year) ?? bitcoinReturnMultiplier(year)) : 1.0,
         bonds: bondReturnsMap.get(year)!,
       });
     }

@@ -23,6 +23,7 @@ import {
   simulateFixedPercentage,
   simulateCapeBased,
 } from "../lib/simulation";
+import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 
 // ... (imports)
 
@@ -114,11 +115,10 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     const spyYears = new Set(sp500.map(d => d.year));
     const qqqYears = new Set(nasdaq100.map(d => d.year));
     const bondYears = new Set(bondReturns.map(d => d.year));
-    const btcYears = new Set(btcReturns.map(d => d.year));
     return Array.from(spyYears)
-      .filter(y => qqqYears.has(y) && bondYears.has(y) && btcYears.has(y))
+      .filter(y => qqqYears.has(y) && bondYears.has(y))
       .sort((a, b) => a - b);
-  }, [sp500, nasdaq100, bondReturns, btcReturns]);
+  }, [sp500, nasdaq100, bondReturns]);
 
   const returnsByYear = useMemo(() => {
     const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bond: number }>();
@@ -130,7 +130,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
-        bitcoin: bitcoin > 0 ? btcReturnsMap.get(year)! : 1.0,
+        bitcoin: bitcoin > 0 ? (btcReturnsMap.get(year) ?? bitcoinReturnMultiplier(year)) : 1.0,
         bond: bondReturnsMap.get(year)!,
       });
     }

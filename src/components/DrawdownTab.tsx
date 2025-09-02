@@ -5,12 +5,10 @@ import type { DrawdownStrategies } from "../App";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import NumericInput from "./NumericInput";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
-import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
-import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
+import { useData } from "../data/DataContext";
 import {
   pctToMult,
   bootstrapSample,
@@ -26,6 +24,7 @@ import {
   simulateFixedPercentage,
   simulateCapeBased,
 } from "../lib/simulation";
+import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 
 // ... (imports)
 
@@ -60,7 +59,6 @@ interface DrawdownTabProps {
   onReorderChartOrder?: (newOrder: string[]) => void;
 }
 
-import { CAPE_DATA } from "../data/cape";
 
 const DrawdownTab: React.FC<DrawdownTabProps> = ({
   drawdownWithdrawalStrategy,
@@ -112,32 +110,33 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   });
 
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns, cape } = useData();
 
   const years = useMemo(() => {
-    const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
-    const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
-    const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    const maxBitcoinYear = Math.max(...BITCOIN_TOTAL_RETURNS.map(d => d.year));
+    const spyYears = new Set(sp500.map(d => d.year));
+    const qqqYears = new Set(nasdaq100.map(d => d.year));
+    const bondYears = new Set(bondReturns.map(d => d.year));
     return Array.from(spyYears)
-      .filter(y => qqqYears.has(y) && bondYears.has(y) && y <= maxBitcoinYear)
+      .filter(y => qqqYears.has(y) && bondYears.has(y))
       .sort((a, b) => a - b);
-  }, []);
+  }, [sp500, nasdaq100, bondReturns]);
 
   const returnsByYear = useMemo(() => {
     const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bond: number }>();
-    const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
-    const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
-    const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
+    const spyReturnsMap = new Map(sp500.map(d => [d.year, pctToMult(d.returnPct)]));
+    const qqqReturnsMap = new Map(nasdaq100.map(d => [d.year, pctToMult(d.returnPct)]));
+    const bondReturnsMap = new Map(bondReturns.map(d => [d.year, pctToMult(d.returnPct)]));
+    const btcReturnsMap = new Map(btcReturns.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
-        bitcoin: bitcoin > 0 ? bitcoinReturnMultiplier(year) : 1.0,
+        bitcoin: bitcoin > 0 ? (btcReturnsMap.get(year) ?? bitcoinReturnMultiplier(year)) : 1.0,
         bond: bondReturnsMap.get(year)!,
       });
     }
     return map;
-  }, [years, bitcoin]);
+  }, [years, bitcoin, sp500, nasdaq100, btcReturns, bondReturns]);
 
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];
@@ -156,7 +155,24 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       } else if (strategy === "floorAndCeiling") {
         runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
       } else if (strategy === "capeBased") {
-        runs.push(simulateCapeBased(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA, yearSample));
+        runs.push(
+          simulateCapeBased(
+            spyReturns,
+            qqqReturns,
+            bitcoinReturns,
+            bondReturns,
+            cash,
+            spy,
+            qqq,
+            bitcoin,
+            bonds,
+            horizon,
+            capeBasedParams.basePercentage,
+            capeBasedParams.capeFraction,
+            cape,
+            yearSample
+          )
+        );
       } else if (strategy === "fixedPercentage") {
         runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, fixedPercentageParams.withdrawalRate));
       } else if (strategy === "principalProtectionRule") {
@@ -188,7 +204,24 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         } else if (strategy === "floorAndCeiling") {
           runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
         } else if (strategy === "capeBased") {
-          runs.push(simulateCapeBased(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, capeBasedParams.basePercentage, capeBasedParams.capeFraction, CAPE_DATA, yearSample));
+          runs.push(
+            simulateCapeBased(
+              spyReturns,
+              qqqReturns,
+              bitcoinReturns,
+              bondReturns,
+              cash,
+              spy,
+              qqq,
+              bitcoin,
+              bonds,
+              horizon,
+              capeBasedParams.basePercentage,
+              capeBasedParams.capeFraction,
+              cape,
+              yearSample
+            )
+          );
         } else if (strategy === "fixedPercentage") {
           runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, fixedPercentageParams.withdrawalRate));
         } else if (strategy === "principalProtectionRule") {
@@ -202,7 +235,30 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationRate, inflationAdjust, mode, numRuns, startYear, returnsByYear, startBalance, years, refreshCounter, strategy, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
+  }, [
+    cash,
+    spy,
+    qqq,
+    bitcoin,
+    bonds,
+    horizon,
+    initialWithdrawalAmount,
+    inflationRate,
+    inflationAdjust,
+    mode,
+    numRuns,
+    startYear,
+    returnsByYear,
+    startBalance,
+    years,
+    refreshCounter,
+    strategy,
+    guytonKlingerParams,
+    floorAndCeilingParams,
+    capeBasedParams,
+    fixedPercentageParams,
+    cape,
+  ]);
 
 
   const stats = useMemo(() => {

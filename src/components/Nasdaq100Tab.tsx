@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { LayoutGroup, motion } from "framer-motion";
-import { NASDAQ100_TOTAL_RETURNS } from "../data/returns";
+import { useData } from "../data/DataContext";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
@@ -92,14 +92,15 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   chartOrder,
   onReorderChartOrder,
 }) => {
-  const years = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
-  const availableMultipliers = useMemo(() => NASDAQ100_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
+  const { nasdaq100 } = useData();
+  const years = useMemo(() => nasdaq100.map(d => d.year).sort((a, b) => a - b), [nasdaq100]);
+  const availableMultipliers = useMemo(() => nasdaq100.map(d => pctToMult(d.returnPct)), [nasdaq100]);
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
     const runs: RunResult[] = [];
     const multipliers = availableMultipliers; // unsorted
-    const sortedReturns = NASDAQ100_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
+    const sortedReturns = nasdaq100.slice().sort((a, b) => a.year - b.year);
     const multipliersChrono = sortedReturns.map(d => pctToMult(d.returnPct));
     const yearsSorted = sortedReturns.map(d => d.year);
 

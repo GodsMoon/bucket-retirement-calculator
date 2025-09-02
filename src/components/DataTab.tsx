@@ -1,41 +1,50 @@
 import { useMemo } from "react";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
-import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
-import { INFLATION_RATES } from "../data/inflation";
-import { CAPE_DATA } from "../data/cape";
+import { useData } from "../data/DataContext";
 
 export default function DataTab() {
+  const { sp500, nasdaq100, bitcoin, bonds, inflation, cape, updateSeries, reset } = useData();
   const years = useMemo(() => {
     return Array.from(
       new Set([
-        ...SP500_TOTAL_RETURNS.map(d => d.year),
-        ...NASDAQ100_TOTAL_RETURNS.map(d => d.year),
-        ...BITCOIN_TOTAL_RETURNS.map(d => d.year),
-        ...TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year),
-        ...INFLATION_RATES.map(d => d.year),
-        ...Object.keys(CAPE_DATA).map(Number),
+        ...sp500.map(d => d.year),
+        ...nasdaq100.map(d => d.year),
+        ...bitcoin.map(d => d.year),
+        ...bonds.map(d => d.year),
+        ...inflation.map(d => d.year),
+        ...Object.keys(cape).map(Number),
       ])
     ).sort((a, b) => b - a);
-  }, []);
+  }, [sp500, nasdaq100, bitcoin, bonds, inflation, cape]);
 
-  const rows = useMemo(() => years.map(year => ({
-    year,
-    sp500: SP500_TOTAL_RETURNS.find(d => d.year === year)?.returnPct ?? null,
-    nasdaq100: NASDAQ100_TOTAL_RETURNS.find(d => d.year === year)?.returnPct ?? null,
-    bitcoin: BITCOIN_TOTAL_RETURNS.find(d => d.year === year)?.returnPct ?? null,
-    bonds: TEN_YEAR_TREASURY_TOTAL_RETURNS.find(d => d.year === year)?.returnPct ?? null,
-    inflation: INFLATION_RATES.find(d => d.year === year)?.inflationPct ?? null,
-    cape: CAPE_DATA[year] ?? null,
-  })), [years]);
+  const rows = useMemo(
+    () =>
+      years.map(year => ({
+        year,
+        sp500: sp500.find(d => d.year === year)?.returnPct ?? null,
+        nasdaq100: nasdaq100.find(d => d.year === year)?.returnPct ?? null,
+        bitcoin: bitcoin.find(d => d.year === year)?.returnPct ?? null,
+        bonds: bonds.find(d => d.year === year)?.returnPct ?? null,
+        inflation: inflation.find(d => d.year === year)?.inflationPct ?? null,
+        cape: cape[year] ?? null,
+      })),
+    [years, sp500, nasdaq100, bitcoin, bonds, inflation, cape]
+  );
 
-  const minYear = years[0];
-  const maxYear = years[years.length - 1];
+  const maxYear = years[0];
+  const minYear = years[years.length - 1];
 
   return (
     <div className="space-y-4">
       <p className="text-sm">
         Annual returns and metrics used for simulations. Data spans {minYear}–{maxYear}.
       </p>
+      <button
+        type="button"
+        onClick={reset}
+        className="rounded bg-slate-200 px-2 py-1 text-sm dark:bg-slate-700"
+      >
+        Reset to defaults
+      </button>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 bg-white dark:bg-slate-800">
@@ -53,12 +62,111 @@ export default function DataTab() {
             {rows.map(r => (
               <tr key={r.year} className="border-b border-slate-200 dark:border-slate-700">
                 <td className="px-2 py-1 text-left">{r.year}</td>
-                <td className="px-2 py-1 text-right">{r.sp500 != null ? `${r.sp500.toFixed(2)}%` : "—"}</td>
-                <td className="px-2 py-1 text-right">{r.nasdaq100 != null ? `${r.nasdaq100.toFixed(2)}%` : "—"}</td>
-                <td className="px-2 py-1 text-right">{r.bitcoin != null ? `${r.bitcoin.toFixed(2)}%` : "—"}</td>
-                <td className="px-2 py-1 text-right">{r.bonds != null ? `${r.bonds.toFixed(2)}%` : "—"}</td>
-                <td className="px-2 py-1 text-right">{r.inflation != null ? `${r.inflation.toFixed(2)}%` : "—"}</td>
-                <td className="px-2 py-1 text-right">{r.cape != null ? r.cape.toFixed(2) : "—"}</td>
+                <td className="px-2 py-1 text-right">
+                  <div className="flex items-center justify-end">
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-20 bg-transparent text-right"
+                      value={r.sp500 ?? ""}
+                      onChange={e =>
+                        updateSeries(
+                          "sp500",
+                          r.year,
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                    />
+                    <span className="ml-1">%</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right">
+                  <div className="flex items-center justify-end">
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-20 bg-transparent text-right"
+                      value={r.nasdaq100 ?? ""}
+                      onChange={e =>
+                        updateSeries(
+                          "nasdaq100",
+                          r.year,
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                    />
+                    <span className="ml-1">%</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right">
+                  <div className="flex items-center justify-end">
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-20 bg-transparent text-right"
+                      value={r.bitcoin ?? ""}
+                      onChange={e =>
+                        updateSeries(
+                          "bitcoin",
+                          r.year,
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                    />
+                    <span className="ml-1">%</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right">
+                  <div className="flex items-center justify-end">
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-20 bg-transparent text-right"
+                      value={r.bonds ?? ""}
+                      onChange={e =>
+                        updateSeries(
+                          "bonds",
+                          r.year,
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                    />
+                    <span className="ml-1">%</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right">
+                  <div className="flex items-center justify-end">
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-20 bg-transparent text-right"
+                      value={r.inflation ?? ""}
+                      onChange={e =>
+                        updateSeries(
+                          "inflation",
+                          r.year,
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                    />
+                    <span className="ml-1">%</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right">
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-20 bg-transparent text-right"
+                    value={r.cape ?? ""}
+                    onChange={e =>
+                      updateSeries(
+                        "cape",
+                        r.year,
+                        e.target.value === "" ? null : Number(e.target.value)
+                      )
+                    }
+                  />
+                </td>
               </tr>
             ))}
           </tbody>

@@ -14,4 +14,10 @@ describe('bitcoinReturnMultiplier', () => {
     expect(bitcoinReturnMultiplier(2011)).toBeCloseTo(map.get(2011)!);
     expect(bitcoinReturnMultiplier(2015)).toBeCloseTo(map.get(2015)!);
   });
+
+  it('wraps years after data range', () => {
+    const minYear = Math.min(...BITCOIN_TOTAL_RETURNS.map(d => d.year));
+    const maxYear = Math.max(...BITCOIN_TOTAL_RETURNS.map(d => d.year));
+    expect(bitcoinReturnMultiplier(maxYear + 1)).toBeCloseTo(map.get(minYear)!);
+  });
 });

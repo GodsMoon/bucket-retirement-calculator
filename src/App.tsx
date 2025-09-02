@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useMemo } from "react";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "./data/returns";
-import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "./data/bonds";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
@@ -11,6 +9,7 @@ import DrawdownTab from "./components/DrawdownTab";
 import ProfileSelector, { type Profile } from "./components/ProfileSelector";
 import ThemeToggle from "./components/ThemeToggle";
 import DataTab from "./components/DataTab";
+import { useData } from "./data/DataContext";
 
 export interface ChartState {
   minimized: boolean;
@@ -42,6 +41,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<
     "sp500" | "nasdaq100" | "portfolio" | "drawdown" | "data"
   >("sp500");
+  const { sp500, nasdaq100, bitcoin: bitcoinReturns, bonds: bondReturns } = useData();
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -66,12 +66,14 @@ export default function App() {
   }, [activeTab]);
 
   const years = useMemo(() => {
-    const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
-    const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
-    const btcYears = new Set(BITCOIN_TOTAL_RETURNS.map(d => d.year));
-    const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    return Array.from(spyYears).filter(y => qqqYears.has(y) && btcYears.has(y) && bondYears.has(y)).sort((a, b) => a - b);
-  }, []);
+    const spyYears = new Set(sp500.map(d => d.year));
+    const qqqYears = new Set(nasdaq100.map(d => d.year));
+    const btcYears = new Set(bitcoinReturns.map(d => d.year));
+    const bondYears = new Set(bondReturns.map(d => d.year));
+    return Array.from(spyYears)
+      .filter(y => qqqYears.has(y) && btcYears.has(y) && bondYears.has(y))
+      .sort((a, b) => a - b);
+  }, [sp500, nasdaq100, bitcoinReturns, bondReturns]);
 
   const defaultParams = {
     startBalance: 1_000_000,

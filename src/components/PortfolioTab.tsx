@@ -2,10 +2,9 @@ import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { LayoutGroup, motion } from "framer-motion";
 import type { DrawdownStrategy } from "../App";
-import { SP500_TOTAL_RETURNS, NASDAQ100_TOTAL_RETURNS, BITCOIN_TOTAL_RETURNS } from "../data/returns";
-import { bitcoinReturnMultiplier } from "../lib/bitcoin";
-import { TEN_YEAR_TREASURY_TOTAL_RETURNS } from "../data/bonds";
+import { useData } from "../data/DataContext";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import { bitcoinReturnMultiplier } from "../lib/bitcoin";
 import AllocationSlider from "./AllocationSlider";
 import CurrencyInput from "./CurrencyInput";
 import NumericInput from "./NumericInput";
@@ -239,32 +238,33 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
+  const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns } = useData();
 
   const years = useMemo(() => {
-    const spyYears = new Set(SP500_TOTAL_RETURNS.map(d => d.year));
-    const qqqYears = new Set(NASDAQ100_TOTAL_RETURNS.map(d => d.year));
-    const bondYears = new Set(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => d.year));
-    const maxBitcoinYear = Math.max(...BITCOIN_TOTAL_RETURNS.map(d => d.year));
+    const spyYears = new Set(sp500.map(d => d.year));
+    const qqqYears = new Set(nasdaq100.map(d => d.year));
+    const bondYears = new Set(bondReturns.map(d => d.year));
     return Array.from(spyYears)
-      .filter(y => qqqYears.has(y) && bondYears.has(y) && y <= maxBitcoinYear)
+      .filter(y => qqqYears.has(y) && bondYears.has(y))
       .sort((a, b) => a - b);
-  }, []);
+  }, [sp500, nasdaq100, bondReturns]);
 
   const returnsByYear = useMemo(() => {
     const map = new Map<number, { spy: number; qqq: number; bitcoin: number; bonds: number }>();
-    const spyReturnsMap = new Map(SP500_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
-    const qqqReturnsMap = new Map(NASDAQ100_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
-    const bondReturnsMap = new Map(TEN_YEAR_TREASURY_TOTAL_RETURNS.map(d => [d.year, pctToMult(d.returnPct)]));
+    const spyReturnsMap = new Map(sp500.map(d => [d.year, pctToMult(d.returnPct)]));
+    const qqqReturnsMap = new Map(nasdaq100.map(d => [d.year, pctToMult(d.returnPct)]));
+    const bondReturnsMap = new Map(bondReturns.map(d => [d.year, pctToMult(d.returnPct)]));
+    const btcReturnsMap = new Map(btcReturns.map(d => [d.year, pctToMult(d.returnPct)]));
     for (const year of years) {
       map.set(year, {
         spy: spyReturnsMap.get(year)!,
         qqq: qqqReturnsMap.get(year)!,
-        bitcoin: bitcoin > 0 ? bitcoinReturnMultiplier(year) : 1.0,
+        bitcoin: bitcoin > 0 ? (btcReturnsMap.get(year) ?? bitcoinReturnMultiplier(year)) : 1.0,
         bonds: bondReturnsMap.get(year)!,
       });
     }
     return map;
-  }, [years, bitcoin]);
+  }, [years, bitcoin, sp500, nasdaq100, btcReturns, bondReturns]);
 
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];

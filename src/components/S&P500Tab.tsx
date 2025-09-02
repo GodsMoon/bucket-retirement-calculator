@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Area, AreaChart, CartesianGrid } from "recharts";
 import { LayoutGroup, motion } from "framer-motion";
-import { SP500_TOTAL_RETURNS } from "../data/returns";
+import { useData } from "../data/DataContext";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
 import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
@@ -91,14 +91,15 @@ const SPTab: React.FC<SPTabProps> = ({
   chartOrder,
   onReorderChartOrder,
 }) => {
-  const years = useMemo(() => SP500_TOTAL_RETURNS.map(d => d.year).sort((a, b) => a - b), []);
-  const availableMultipliers = useMemo(() => SP500_TOTAL_RETURNS.map(d => pctToMult(d.returnPct)), []);
+  const { sp500 } = useData();
+  const years = useMemo(() => sp500.map(d => d.year).sort((a, b) => a - b), [sp500]);
+  const availableMultipliers = useMemo(() => sp500.map(d => pctToMult(d.returnPct)), [sp500]);
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
     const runs: RunResult[] = [];
     const multipliers = availableMultipliers; // unsorted
-    const sortedReturns = SP500_TOTAL_RETURNS.slice().sort((a, b) => a.year - b.year);
+    const sortedReturns = sp500.slice().sort((a, b) => a.year - b.year);
     const multipliersChrono = sortedReturns.map(d => pctToMult(d.returnPct));
     const yearsSorted = sortedReturns.map(d => d.year);
 

@@ -246,7 +246,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshCounter]);
+  }, [refreshCounter, returnsByYear]);
 
 
   const stats = useMemo(() => {

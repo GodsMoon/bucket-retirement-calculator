@@ -93,7 +93,8 @@ export function simulateGuytonKlinger(
   guardrailUpper: number,
   guardrailLower: number,
   cutPercentage: number,
-  raisePercentage: number
+  raisePercentage: number,
+  inflationRates?: number[],
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -167,8 +168,9 @@ export function simulateGuytonKlinger(
     // Inflation adjustment
     const currentWithdrawalRate = withdrawalAmount / totalAfterGrowth;
     if (inflationAdjust) {
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
       if (lastYearReturn >= 0 || currentWithdrawalRate <= initialWithdrawalRate) {
-        nextWithdrawalAmount *= (1 + inflationRate);
+        nextWithdrawalAmount *= (1 + rate);
       }
     }
 
@@ -203,7 +205,8 @@ export function simulateFloorAndCeiling(
   inflationRate: number,
   inflationAdjust: boolean,
   floor: number,
-  ceiling: number
+  ceiling: number,
+  inflationRates?: number[],
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -219,6 +222,7 @@ export function simulateFloorAndCeiling(
   balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
+  let cumulativeInflation = 1;
   for (let y = 0; y < horizon; y++) {
     // Determine withdrawal amount
     let currentWithdrawal = balances[y].total * initialWithdrawalRate;
@@ -229,7 +233,7 @@ export function simulateFloorAndCeiling(
     currentWithdrawal = Math.min(currentWithdrawal, ceilingAmount);
 
     if (inflationAdjust) {
-      currentWithdrawal *= Math.pow(1 + inflationRate, y);
+      currentWithdrawal *= cumulativeInflation;
     }
 
     withdrawalAmount = currentWithdrawal;
@@ -261,6 +265,11 @@ export function simulateFloorAndCeiling(
         const fromBonds = Math.min(remainingWithdrawal, bonds);
         bonds -= fromBonds;
       }
+    }
+
+    if (inflationAdjust) {
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
+      cumulativeInflation *= (1 + rate);
     }
 
     const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
@@ -299,7 +308,8 @@ export function simulateFourPercentRuleRatchetUp(
   initialWithdrawalAmount: number,
   withdrawalRate: number,
   inflationAdjust: boolean,
-  inflationRate: number
+  inflationRate: number,
+  inflationRates?: number[],
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -370,7 +380,8 @@ export function simulateFourPercentRuleRatchetUp(
 
     let nextWithdrawalAmount = withdrawalAmount;
     if (inflationAdjust) {
-      nextWithdrawalAmount *= (1 + inflationRate);
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
+      nextWithdrawalAmount *= (1 + rate);
     }
 
     if (endOfYearBalance > lastYearBalance) {
@@ -398,6 +409,7 @@ export function simulateFourPercentRule(
   initialWithdrawalAmount: number,
   inflationAdjust: boolean,
   inflationRate: number,
+  inflationRates?: number[],
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -418,7 +430,8 @@ export function simulateFourPercentRule(
     withdrawals[y] = currentWithdrawal;
 
     if (inflationAdjust) {
-      withdrawalAmount *= (1 + inflationRate);
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
+      withdrawalAmount *= (1 + rate);
     }
 
     // Drawdown from cash first
@@ -485,6 +498,7 @@ export function simulatePrincipalProtectionRule(
   initialWithdrawalAmount: number,
   inflationAdjust: boolean,
   inflationRate: number,
+  inflationRates?: number[],
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -505,7 +519,8 @@ export function simulatePrincipalProtectionRule(
     if (balances[y].total >= startBalance) {
       currentWithdrawal = withdrawalAmount;
       if (inflationAdjust) {
-        withdrawalAmount *= (1 + inflationRate);
+        const rate = inflationRates ? inflationRates[y] : inflationRate;
+        withdrawalAmount *= (1 + rate);
       }
     }
 

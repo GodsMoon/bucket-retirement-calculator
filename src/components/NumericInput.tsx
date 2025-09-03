@@ -39,7 +39,10 @@ const NumericInput: React.FC<NumericInputProps> = ({ value, onChange, step = 1, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, precision]);
 
+  const disabled = (props as { disabled?: boolean }).disabled === true;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const inputValue = e.target.value;
     // Allow temporary states like '' or '-'
     if (inputValue === '' || inputValue === '-' || inputValue === '+') {
@@ -52,6 +55,7 @@ const NumericInput: React.FC<NumericInputProps> = ({ value, onChange, step = 1, 
   };
 
   const handleBlur = () => {
+    if (disabled) return;
     // On blur, normalize to current value
     const normalized = clamp(parseNumeric(displayValue), min, max);
     onChange(normalized);
@@ -60,13 +64,14 @@ const NumericInput: React.FC<NumericInputProps> = ({ value, onChange, step = 1, 
   };
 
   const handleStep = (direction: 'up' | 'down') => {
+    if (disabled) return;
     const delta = direction === 'up' ? step : -step;
     const next = clamp((value ?? 0) + delta, min, max);
     onChange(next);
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className} ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       <input
         type="text"
         inputMode="decimal"
@@ -79,6 +84,7 @@ const NumericInput: React.FC<NumericInputProps> = ({ value, onChange, step = 1, 
       <div className="absolute inset-y-0 right-0 w-8 flex flex-col items-center justify-center">
         <button
           type="button"
+          disabled={disabled}
           onClick={() => handleStep('up')}
           className="h-1/2 px-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           tabIndex={-1}
@@ -88,6 +94,7 @@ const NumericInput: React.FC<NumericInputProps> = ({ value, onChange, step = 1, 
         </button>
         <button
           type="button"
+          disabled={disabled}
           onClick={() => handleStep('down')}
           className="h-1/2 px-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           tabIndex={-1}

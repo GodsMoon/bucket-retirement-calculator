@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Ar
 import { LayoutGroup, motion } from "framer-motion";
 import { useData } from "../data/DataContext";
 import { pctToMult, bootstrapSample, shuffle, percentile, calculateDrawdownStats } from "../lib/simulation";
+import { generateInflationSequence } from "../lib/inflation";
 import type { RunResult } from "../lib/simulation";
 import CurrencyInput from "./CurrencyInput";
 import NumericInput from "./NumericInput";
@@ -15,17 +16,19 @@ function simulatePath(
   startBalance: number,
   initialWithdrawalRate: number, // e.g., 0.04
   inflationRate: number, // constant inflation for inflation-adjusted withdrawals
-  inflationAdjust: boolean
+  inflationAdjust: boolean,
+  inflationRates?: number[],
 ): RunResult {
   const horizon = returns.length;
   const balances: number[] = new Array(horizon + 1).fill(0);
   const withdrawals: number[] = new Array(horizon).fill(0);
   let bal = startBalance;
   const baseWithdrawal = startBalance * initialWithdrawalRate;
+  let withdrawalAmount = baseWithdrawal;
   balances[0] = bal;
   let failedYear: number | null = null;
   for (let y = 0; y < horizon; y++) {
-    const withdrawal = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
+    const withdrawal = inflationAdjust ? withdrawalAmount : baseWithdrawal;
     withdrawals[y] = withdrawal;
     bal = bal - withdrawal;
     if (bal <= 0 && failedYear === null) {
@@ -42,6 +45,10 @@ function simulatePath(
     // apply return for the year
     bal = bal * returns[y];
     balances[y + 1] = bal;
+    if (inflationAdjust) {
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
+      withdrawalAmount *= (1 + rate);
+    }
   }
   // If never failed, balances filled to end
   return { balances, failedYear, withdrawals };
@@ -55,6 +62,7 @@ interface NasdaqTabProps {
   isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
   inflationRate: number;
+  useHistoricalInflation: boolean;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
   numRuns: number;
   seed: number | "";
@@ -78,6 +86,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   isInitialAmountLocked,
   inflationAdjust,
   inflationRate,
+  useHistoricalInflation,
   mode,
   numRuns,
   seed,
@@ -92,9 +101,14 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   chartOrder,
   onReorderChartOrder,
 }) => {
-  const { nasdaq100 } = useData();
+  const { nasdaq100, inflation } = useData();
   const years = useMemo(() => nasdaq100.map(d => d.year).sort((a, b) => a - b), [nasdaq100]);
   const availableMultipliers = useMemo(() => nasdaq100.map(d => pctToMult(d.returnPct)), [nasdaq100]);
+  const inflationSorted = useMemo(() => inflation.slice().sort((a, b) => a.year - b.year), [inflation]);
+  const inflationYears = useMemo(() => inflationSorted.map(d => d.year), [inflationSorted]);
+  const inflationRatesChrono = useMemo(() => inflationSorted.map(d => d.inflationPct / 100), [inflationSorted]);
+  const availableInflationRates = useMemo(() => inflation.map(d => d.inflationPct / 100), [inflation]);
+  const effectiveInflationRate = useHistoricalInflation ? 0 : inflationRate;
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -105,7 +119,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
     const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startBalance, horizon, withdrawRate, inflationRate, inflationAdjust, mode, numRuns, seed, startYear]);
+  }, [startBalance, horizon, withdrawRate, effectiveInflationRate, inflationAdjust, mode, numRuns, seed, startYear, useHistoricalInflation]);
 
   const sims = useMemo(() => {
     const initW = withdrawRate / 100;
@@ -133,12 +147,23 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         seq = bootstrapSample(multipliers, horizon);
       }
       if (seq.length > 0) {
-        runs.push(simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust));
+        let inflSeq: number[] | undefined;
+        if (useHistoricalInflation) {
+          inflSeq = generateInflationSequence(
+            mode,
+            horizon,
+            startYear,
+            inflationYears,
+            inflationRatesChrono,
+            availableInflationRates,
+          );
+        }
+        runs.push(simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust, inflSeq));
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableMultipliers, nasdaq100, refreshCounter]);
+  }, [availableMultipliers, nasdaq100, refreshCounter, useHistoricalInflation, inflation]);
 
   const stats = useMemo(() => {
     if (sims.length === 0) return null;
@@ -429,15 +454,25 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                     <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
                     <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
                 </div>
-                <label className="block text-sm">Assumed Inflation Rate
-                    <div className="flex items-center mt-1">
+                <label className="block text-sm">
+                    <span className={`${useHistoricalInflation ? 'text-slate-500 dark:text-slate-400' : ''}`}>Assumed Inflation Rate</span>
+                    <div className="flex items-center mt-1" aria-disabled={useHistoricalInflation}>
                         <NumericInput
                           className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
                           value={Math.round(inflationRate * 400) / 4}
                           step={0.25}
                           onChange={(v) => onParamChange('inflationRate', v / 100)}
+                          disabled={useHistoricalInflation}
                         />
                         <span className="ml-2">%</span>
+                        <label className="ml-4 flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={useHistoricalInflation}
+                            onChange={e => onParamChange('useHistoricalInflation', e.target.checked)}
+                          />
+                          <span className="text-sm">Use Historical Inflation</span>
+                        </label>
                     </div>
                 </label>
             </div>

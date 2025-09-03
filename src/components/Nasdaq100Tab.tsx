@@ -218,7 +218,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
               </ResponsiveContainer>
             </div>
             <details className="mt-4">
-              <summary className="cursor-pointer select-none">Show data table</summary>
+              <summary className="cursor-pointer select-none">Show as table</summary>
               <div className="overflow-x-auto mt-2">
                 <table className="min-w-full text-xs">
                   <thead>

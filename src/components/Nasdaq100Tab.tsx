@@ -459,7 +459,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                     <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
                 </div>
                 <label className="block text-sm">
-                    <span className={`${useHistoricalInflation ? 'text-slate-500 dark:text-slate-400' : ''}`}>Assumed Inflation Rate</span>
+                    <span className={`${useHistoricalInflation ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Custom Inflation Rate</span>
                     <div className="flex items-center mt-1" aria-disabled={useHistoricalInflation}>
                         <NumericInput
                           className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"

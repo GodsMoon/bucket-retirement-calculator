@@ -102,7 +102,7 @@ const SPTab: React.FC<SPTabProps> = ({
       firstRender.current = false;
       return;
     }
-    const id = setTimeout(onRefresh, 1000);
+    const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startBalance, horizon, withdrawRate, inflationRate, inflationAdjust, mode, numRuns, seed, startYear]);
@@ -181,9 +181,9 @@ const SPTab: React.FC<SPTabProps> = ({
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
-  const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
 
-  const charts: Record<string, React.ReactElement<ChartProps>> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = useMemo(() => ({
     'sp500-trajectory': (
       <Chart
         chartId="sp500-trajectory"
@@ -191,6 +191,8 @@ const SPTab: React.FC<SPTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-trajectory')}
         onToggleSize={() => toggleSize('sp500-trajectory')}
+        onDragStart={() => setDraggingId('sp500-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['sp500-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
@@ -224,6 +226,8 @@ const SPTab: React.FC<SPTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-median-trajectory')}
         onToggleSize={() => toggleSize('sp500-median-trajectory')}
+        onDragStart={() => setDraggingId('sp500-median-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['sp500-median-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
@@ -264,6 +268,8 @@ const SPTab: React.FC<SPTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('sp500-sample')}
         onToggleSize={() => toggleSize('sp500-sample')}
+        onDragStart={() => setDraggingId('sp500-sample')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['sp500-sample']?.size ?? 'half'}
         minimizable={true}
       >
@@ -307,6 +313,8 @@ const SPTab: React.FC<SPTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`sp500-sample-${i}-trajectory`)}
           onToggleSize={() => toggleSize(`sp500-sample-${i}-trajectory`)}
+          onDragStart={() => setDraggingId(`sp500-sample-${i}-trajectory`)}
+          onDragEnd={() => { setDraggingId(null); setOverId(null); }}
           size={chartStates[`sp500-sample-${i}-trajectory`]?.size ?? 'half'}
           minimizable={true}
         >
@@ -340,7 +348,7 @@ const SPTab: React.FC<SPTabProps> = ({
       );
       return acc;
     }, {} as Record<string, React.ReactElement<ChartProps>>),
-  };
+  }), [chartStates, onRefresh, toggleMinimize, toggleSize, stats, sims, currency, sampleRun]);
 
   // Drag & drop state for reordering
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
@@ -556,13 +564,7 @@ const SPTab: React.FC<SPTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement<ChartProps>(
-                  charts[chartId],
-                  {
-                    onDragStart: () => setDraggingId(chartId),
-                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  }
-                )}
+                {charts[chartId]}
               </motion.div>
             )
           ))}

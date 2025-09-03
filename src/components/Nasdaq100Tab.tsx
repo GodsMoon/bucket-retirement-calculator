@@ -102,7 +102,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
       firstRender.current = false;
       return;
     }
-    const id = setTimeout(onRefresh, 1000);
+    const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startBalance, horizon, withdrawRate, inflationRate, inflationAdjust, mode, numRuns, seed, startYear]);
@@ -181,9 +181,9 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
   }, [sims, horizon]);
 
   const sampleRun = sims[0];
-  const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
 
-  const charts: Record<string, React.ReactElement<ChartProps>> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = useMemo(() => ({
     'nasdaq100-trajectory': (
       <Chart
         chartId="nasdaq100-trajectory"
@@ -191,6 +191,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-trajectory')}
         onToggleSize={() => toggleSize('nasdaq100-trajectory')}
+        onDragStart={() => setDraggingId('nasdaq100-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['nasdaq100-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
@@ -224,6 +226,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-median-trajectory')}
         onToggleSize={() => toggleSize('nasdaq100-median-trajectory')}
+        onDragStart={() => setDraggingId('nasdaq100-median-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['nasdaq100-median-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
@@ -264,6 +268,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('nasdaq100-sample')}
         onToggleSize={() => toggleSize('nasdaq100-sample')}
+        onDragStart={() => setDraggingId('nasdaq100-sample')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['nasdaq100-sample']?.size ?? 'half'}
         minimizable={true}
       >
@@ -307,6 +313,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`nasdaq100-sample-${i}-trajectory`)}
           onToggleSize={() => toggleSize(`nasdaq100-sample-${i}-trajectory`)}
+          onDragStart={() => setDraggingId(`nasdaq100-sample-${i}-trajectory`)}
+          onDragEnd={() => { setDraggingId(null); setOverId(null); }}
           size={chartStates[`nasdaq100-sample-${i}-trajectory`]?.size ?? 'half'}
           minimizable={true}
         >
@@ -340,7 +348,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
       );
       return acc;
     }, {} as Record<string, React.ReactElement<ChartProps>>),
-  };
+  }), [chartStates, onRefresh, toggleMinimize, toggleSize, stats, sims, currency, sampleRun]);
 
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
@@ -555,13 +563,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement<ChartProps>(
-                  charts[chartId],
-                  {
-                    onDragStart: () => setDraggingId(chartId),
-                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  }
-                )}
+                {charts[chartId]}
               </motion.div>
             )
           ))}

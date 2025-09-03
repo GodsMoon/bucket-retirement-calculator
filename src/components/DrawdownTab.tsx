@@ -109,7 +109,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     withdrawalRate: 0.04,
   });
 
-  const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
   const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns, cape } = useData();
 
   const years = useMemo(() => {
@@ -144,7 +144,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       firstRender.current = false;
       return;
     }
-    const id = setTimeout(onRefresh, 1000);
+    const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawdownWithdrawalStrategy, startBalance, cash, spy, qqq, bitcoin, bonds, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, inflationRate, mode, numRuns, seed, startYear, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
@@ -300,7 +300,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
 
   const sampleRun = sims[0];
 
-  const charts: Record<string, React.ReactElement<ChartProps>> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = useMemo(() => ({
     'drawdown-trajectory': (
       <Chart
         chartId="drawdown-trajectory"
@@ -308,6 +308,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-trajectory')}
         onToggleSize={() => toggleSize('drawdown-trajectory')}
+        onDragStart={() => setDraggingId('drawdown-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['drawdown-trajectory']?.size ?? 'full'}
         minimizable={true}
       >
@@ -341,6 +343,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-asset-allocation')}
         onToggleSize={() => toggleSize('drawdown-median-asset-allocation')}
+        onDragStart={() => setDraggingId('drawdown-median-asset-allocation')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['drawdown-median-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
@@ -381,6 +385,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-median-trajectory')}
         onToggleSize={() => toggleSize('drawdown-median-trajectory')}
+        onDragStart={() => setDraggingId('drawdown-median-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['drawdown-median-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
@@ -421,6 +427,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-asset-allocation')}
         onToggleSize={() => toggleSize('drawdown-asset-allocation')}
+        onDragStart={() => setDraggingId('drawdown-asset-allocation')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['drawdown-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
@@ -461,6 +469,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('drawdown-sample')}
         onToggleSize={() => toggleSize('drawdown-sample')}
+        onDragStart={() => setDraggingId('drawdown-sample')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['drawdown-sample']?.size ?? 'half'}
         minimizable={true}
       >
@@ -517,6 +527,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-asset-allocation`)}
           onToggleSize={() => toggleSize(`drawdown-sample-${i}-asset-allocation`)}
+          onDragStart={() => setDraggingId(`drawdown-sample-${i}-asset-allocation`)}
+          onDragEnd={() => { setDraggingId(null); setOverId(null); }}
           size={chartStates[`drawdown-sample-${i}-asset-allocation`]?.size ?? 'half'}
           minimizable={true}
         >
@@ -555,6 +567,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`drawdown-sample-${i}-trajectory`)}
           onToggleSize={() => toggleSize(`drawdown-sample-${i}-trajectory`)}
+          onDragStart={() => setDraggingId(`drawdown-sample-${i}-trajectory`)}
+          onDragEnd={() => { setDraggingId(null); setOverId(null); }}
           size={chartStates[`drawdown-sample-${i}-trajectory`]?.size ?? 'half'}
           minimizable={true}
         >
@@ -588,7 +602,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       );
       return acc;
     }, {} as Record<string, React.ReactElement<ChartProps>>),
-  };
+  }), [chartStates, onRefresh, toggleMinimize, toggleSize, stats, sims, currency, sampleRun]);
 
   return (
     <div className="space-y-6">
@@ -893,13 +907,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement<ChartProps>(
-                  charts[chartId],
-                  {
-                    onDragStart: () => setDraggingId(chartId),
-                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  }
-                )}
+                {charts[chartId]}
               </motion.div>
             )
           ))}

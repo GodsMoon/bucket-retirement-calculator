@@ -235,7 +235,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   chartOrder,
   onReorderChartOrder,
 }) => {
-  const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
   const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns } = useData();
@@ -272,7 +272,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       firstRender.current = false;
       return;
     }
-    const id = setTimeout(onRefresh, 1000);
+    const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startBalance, cash, spy, qqq, bitcoin, bonds, drawdownStrategy, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
@@ -364,7 +364,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
 
   const sampleRun = sims[0];
 
-  const charts: Record<string, React.ReactElement<ChartProps>> = {
+  const charts: Record<string, React.ReactElement<ChartProps>> = useMemo(() => ({
     'portfolio-trajectory': (
       <Chart
         chartId="portfolio-trajectory"
@@ -372,6 +372,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-trajectory')}
         onToggleSize={() => toggleSize('portfolio-trajectory')}
+        onDragStart={() => setDraggingId('portfolio-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['portfolio-trajectory']?.size ?? 'full'}
         minimizable={true}
       >
@@ -402,6 +404,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-asset-allocation')}
         onToggleSize={() => toggleSize('portfolio-median-asset-allocation')}
+        onDragStart={() => setDraggingId('portfolio-median-asset-allocation')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['portfolio-median-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
@@ -442,6 +446,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-median-trajectory')}
         onToggleSize={() => toggleSize('portfolio-median-trajectory')}
+        onDragStart={() => setDraggingId('portfolio-median-trajectory')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['portfolio-median-trajectory']?.size ?? 'half'}
         minimizable={true}
       >
@@ -482,6 +488,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-asset-allocation')}
         onToggleSize={() => toggleSize('portfolio-asset-allocation')}
+        onDragStart={() => setDraggingId('portfolio-asset-allocation')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['portfolio-asset-allocation']?.size ?? 'half'}
         minimizable={true}
       >
@@ -522,6 +530,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         onRefresh={onRefresh}
         onMinimize={() => toggleMinimize('portfolio-sample')}
         onToggleSize={() => toggleSize('portfolio-sample')}
+        onDragStart={() => setDraggingId('portfolio-sample')}
+        onDragEnd={() => { setDraggingId(null); setOverId(null); }}
         size={chartStates['portfolio-sample']?.size ?? 'half'}
         minimizable={true}
       >
@@ -565,6 +575,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-asset-allocation`)}
           onToggleSize={() => toggleSize(`portfolio-sample-${i}-asset-allocation`)}
+          onDragStart={() => setDraggingId(`portfolio-sample-${i}-asset-allocation`)}
+          onDragEnd={() => { setDraggingId(null); setOverId(null); }}
           size={chartStates[`portfolio-sample-${i}-asset-allocation`]?.size ?? 'half'}
           minimizable={true}
         >
@@ -603,6 +615,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
           onRefresh={onRefresh}
           onMinimize={() => toggleMinimize(`portfolio-sample-${i}-trajectory`)}
           onToggleSize={() => toggleSize(`portfolio-sample-${i}-trajectory`)}
+          onDragStart={() => setDraggingId(`portfolio-sample-${i}-trajectory`)}
+          onDragEnd={() => { setDraggingId(null); setOverId(null); }}
           size={chartStates[`portfolio-sample-${i}-trajectory`]?.size ?? 'half'}
           minimizable={true}
         >
@@ -636,7 +650,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       );
       return acc;
     }, {} as Record<string, React.ReactNode>),
-  };
+  }), [chartStates, onRefresh, toggleMinimize, toggleSize, stats, sims, currency, sampleRun]);
 
   return (
     <div className="space-y-6">
@@ -866,13 +880,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                     <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>
                   </div>
                 )}
-                {React.cloneElement<ChartProps>(
-                  charts[chartId],
-                  {
-                    onDragStart: () => setDraggingId(chartId),
-                    onDragEnd: () => { setDraggingId(null); setOverId(null); },
-                  }
-                )}
+                {charts[chartId]}
               </motion.div>
             )
           ))}

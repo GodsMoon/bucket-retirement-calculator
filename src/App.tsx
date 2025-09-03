@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePersistentState } from "./hooks/usePersistentState";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import TabNavigation from "./components/TabNavigation";
 import SPTab from "./components/S&P500Tab";
 import Nasdaq100Tab from "./components/Nasdaq100Tab";
@@ -259,25 +259,27 @@ export default function App() {
     ],
   });
 
-  const toggleMinimize = (chartId: string) => {
-    const newChartStates = { ...chartStates };
-    newChartStates[chartId].minimized = !newChartStates[chartId].minimized;
-    setChartStates(newChartStates);
+  const toggleMinimize = useCallback((chartId: string) => {
+    setChartStates(prevStates => {
+      const next = { ...prevStates, [chartId]: { ...prevStates[chartId], minimized: !prevStates[chartId].minimized } };
+      if (!next[chartId].minimized) {
+        const tab = next[chartId].tab;
+        setChartOrder(prevOrder => {
+          const order = prevOrder[tab];
+          const newOrder = [chartId, ...order.filter(id => id !== chartId)];
+          return { ...prevOrder, [tab]: newOrder };
+        });
+      }
+      return next;
+    });
+  }, []);
 
-    if (!newChartStates[chartId].minimized) {
-      const tab = newChartStates[chartId].tab;
-      const order = chartOrder[tab];
-      const newOrder = [chartId, ...order.filter(id => id !== chartId)];
-      setChartOrder(prev => ({ ...prev, [tab]: newOrder }));
-    }
-  };
-
-  const toggleSize = (chartId: string) => {
+  const toggleSize = useCallback((chartId: string) => {
     setChartStates(prev => ({
       ...prev,
       [chartId]: { ...prev[chartId], size: prev[chartId].size === 'half' ? 'full' : 'half' },
     }));
-  };
+  }, []);
 
   const handleProfileChange = (p: Profile) => {
     const data = loadProfileData(p);
@@ -394,9 +396,9 @@ export default function App() {
     }
   }, [activeStartBalance, isFirstWithdrawLocked, initialWithdrawalAmount, withdrawRate, setWithdrawRate, setInitialWithdrawalAmount]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshCounter(prev => prev + 1);
-  };
+  }, []);
 
   return (
     <div className={darkMode ? "dark" : ""}>

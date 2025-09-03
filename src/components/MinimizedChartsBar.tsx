@@ -31,4 +31,4 @@ const MinimizedChartsBar: React.FC<MinimizedChartsBarProps> = ({ chartStates, on
   );
 };
 
-export default MinimizedChartsBar;
+export default React.memo(MinimizedChartsBar);

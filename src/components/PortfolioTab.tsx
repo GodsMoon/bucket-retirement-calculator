@@ -312,7 +312,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshCounter]);
+  }, [refreshCounter, returnsByYear]);
 
 
   const stats = useMemo(() => {

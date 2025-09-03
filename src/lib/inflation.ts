@@ -7,7 +7,16 @@ export function generateInflationSequence(
   yearsSorted: number[],
   ratesChrono: number[],
   availableRates: number[],
+  yearSample?: number[],
 ): number[] {
+  // If a specific year sample is provided, derive inflation directly from it.
+  if (yearSample && yearSample.length > 0) {
+    const rateByYear = new Map<number, number>();
+    for (let i = 0; i < yearsSorted.length; i++) {
+      rateByYear.set(yearsSorted[i], ratesChrono[i]);
+    }
+    return yearSample.map(y => rateByYear.get(y) ?? 0);
+  }
   if (mode === "actual-seq") {
     let startIdx = yearsSorted.indexOf(startYear);
     if (startIdx === -1) startIdx = 0;

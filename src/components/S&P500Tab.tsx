@@ -133,13 +133,16 @@ const SPTab: React.FC<SPTabProps> = ({
 
     for (let r = 0; r < numSimRuns; r++) {
       let seq: number[] = [];
+      let yearSampleForInflation: number[] | undefined;
       if (mode === 'actual-seq') {
         let startIdx = yearsSorted.indexOf(startYear);
         if (startIdx === -1) startIdx = 0;
         seq = multipliersChrono.slice(startIdx, startIdx + horizon);
+        yearSampleForInflation = yearsSorted.slice(startIdx, startIdx + horizon);
       } else if (mode === 'actual-seq-random-start') {
         const startIdx = Math.floor(Math.random() * multipliersChrono.length);
         seq = Array.from({ length: horizon }, (_, i) => multipliersChrono[(startIdx + i) % multipliersChrono.length]);
+        yearSampleForInflation = Array.from({ length: horizon }, (_, i) => yearsSorted[(startIdx + i) % yearsSorted.length]);
       } else if (mode === "random-shuffle") {
         const shuffled = shuffle(multipliers);
         seq = Array.from({ length: horizon }, (_, i) => shuffled[i % shuffled.length]);
@@ -156,6 +159,7 @@ const SPTab: React.FC<SPTabProps> = ({
             inflationYears,
             inflationRatesChrono,
             availableInflationRates,
+            yearSampleForInflation,
           );
         }
         runs.push(simulatePath(seq, startBalance, initW, inflationRate, inflationAdjust, inflSeq));

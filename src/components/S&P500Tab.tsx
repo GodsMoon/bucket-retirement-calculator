@@ -459,27 +459,38 @@ const SPTab: React.FC<SPTabProps> = ({
                     <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
                     <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
                 </div>
-                <label className="block text-sm">
-                    <span className={`${useHistoricalInflation ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Custom Inflation Rate</span>
-                    <div className="flex items-center mt-1" aria-disabled={useHistoricalInflation}>
-                        <NumericInput
-                          className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
-                          value={Math.round(inflationRate * 400) / 4}
-                          step={0.25}
-                          onChange={(v) => onParamChange('inflationRate', v / 100)}
-                          disabled={useHistoricalInflation}
-                        />
-                        <span className="ml-2">%</span>
-                        <label className="ml-4 flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={useHistoricalInflation}
-                            onChange={e => onParamChange('useHistoricalInflation', e.target.checked)}
-                          />
-                          <span className="text-sm">Use Historical Inflation</span>
-                        </label>
-                    </div>
-                </label>
+                <div className={`block text-sm ${!inflationAdjust ? 'opacity-50' : ''}`} aria-disabled={!inflationAdjust}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="infl-hist-sp500"
+                      name="inflationSourceSP500"
+                      checked={useHistoricalInflation}
+                      onChange={() => onParamChange('useHistoricalInflation', true)}
+                      disabled={!inflationAdjust}
+                    />
+                    <label htmlFor="infl-hist-sp500" className={`text-sm ${!inflationAdjust ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Historical Inflation</label>
+                  </div>
+                  <div className="flex items-center mt-2 gap-2">
+                    <input
+                      type="radio"
+                      id="infl-custom-sp500"
+                      name="inflationSourceSP500"
+                      checked={!useHistoricalInflation}
+                      onChange={() => onParamChange('useHistoricalInflation', false)}
+                      disabled={!inflationAdjust}
+                    />
+                    <label htmlFor="infl-custom-sp500" className={`text-sm ${!inflationAdjust ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Custom Inflation Rate</label>
+                    <NumericInput
+                      className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+                      value={Math.round(inflationRate * 400) / 4}
+                      step={0.25}
+                      onChange={(v) => onParamChange('inflationRate', v / 100)}
+                      disabled={!inflationAdjust}
+                    />
+                    <span className="ml-2">%</span>
+                  </div>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">

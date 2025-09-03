@@ -90,7 +90,7 @@ export default function App() {
     isFirstWithdrawLocked: false,
     inflationAdjust: true,
     inflationRate: 0.02,
-    useHistoricalInflation: false,
+    useHistoricalInflation: true,
     mode: "actual-seq-random-start" as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap",
     numRuns: 1000,
     seed: "" as number | "",

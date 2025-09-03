@@ -322,25 +322,56 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         minimizable={true}
       >
         {stats && (
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
-                <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
-                <Tooltip
-                  formatter={(v: number) => (typeof v === 'number' ? currency.format(v) : v)}
-                  itemSorter={(item: { value?: number }) => { return (item.value ?? 0) * -1; }}
-                />
-                <Legend />
-                <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
-                <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
-                <Area type="monotone" dataKey="p50" name="50th %ile" fillOpacity={0.15} stroke="#68a" fill="#68a" />
-                <Area type="monotone" dataKey="p25" name="25th %ile" fillOpacity={0.15} stroke="#8ac" fill="#8ac" />
-                <Area type="monotone" dataKey="p10" name="10th %ile" fillOpacity={0.15} stroke="#acd" fill="#acd" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats.bands.map(b => ({ year: b.year, p10: b.p10, p25: b.p25, p50: b.p50, p75: b.p75, p90: b.p90 }))} margin={{ left: 32, right: 8, top: 8, bottom: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="year" tickFormatter={(t) => `${t}`} label={{ value: "Years", position: "insideBottom", offset: -2 }} />
+                  <YAxis tickFormatter={(v: number) => (v >= 1 ? (currency.format(v)) : v.toFixed(2))} />
+                  <Tooltip
+                    formatter={(v: number) => (typeof v === 'number' ? currency.format(v) : v)}
+                    itemSorter={(item: { value?: number }) => { return (item.value ?? 0) * -1; }}
+                  />
+                  <Legend />
+                  <Area type="monotone" dataKey="p90" name="90th %ile" fillOpacity={0.15} stroke="#245" fill="#245" />
+                  <Area type="monotone" dataKey="p75" name="75th %ile" fillOpacity={0.15} stroke="#468" fill="#468" />
+                  <Area type="monotone" dataKey="p50" name="50th %ile" fillOpacity={0.15} stroke="#68a" fill="#68a" />
+                  <Area type="monotone" dataKey="p25" name="25th %ile" fillOpacity={0.15} stroke="#8ac" fill="#8ac" />
+                  <Area type="monotone" dataKey="p10" name="10th %ile" fillOpacity={0.15} stroke="#acd" fill="#acd" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <details className="mt-4">
+              <summary className="cursor-pointer select-none">Show as table</summary>
+              <div className="overflow-x-auto mt-2">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="px-2 py-1 text-left">Year</th>
+                      <th className="px-2 py-1 text-left">10th %ile</th>
+                      <th className="px-2 py-1 text-left">25th %ile</th>
+                      <th className="px-2 py-1 text-left">50th %ile</th>
+                      <th className="px-2 py-1 text-left">75th %ile</th>
+                      <th className="px-2 py-1 text-left">90th %ile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.bands.map(b => (
+                      <tr key={b.year} className="odd:bg-slate-100 dark:odd:bg-slate-700">
+                        <td className="px-2 py-1">{b.year}</td>
+                        <td className="px-2 py-1">{b.p10 >= 1 ? currency.format(b.p10) : b.p10.toFixed(2)}</td>
+                        <td className="px-2 py-1">{b.p25 >= 1 ? currency.format(b.p25) : b.p25.toFixed(2)}</td>
+                        <td className="px-2 py-1">{b.p50 >= 1 ? currency.format(b.p50) : b.p50.toFixed(2)}</td>
+                        <td className="px-2 py-1">{b.p75 >= 1 ? currency.format(b.p75) : b.p75.toFixed(2)}</td>
+                        <td className="px-2 py-1">{b.p90 >= 1 ? currency.format(b.p90) : b.p90.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </>
         )}
       </Chart>
     ),

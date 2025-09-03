@@ -22,7 +22,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
       initialWithdrawalAmount,
       withdrawalRate,
       true, // inflationAdjust
-      inflationRate
+      inflationRate,
+      undefined
     );
 
     // Year 0 withdrawal is 40000
@@ -44,7 +45,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
       initialWithdrawalAmount,
       withdrawalRate,
       true, // inflationAdjust
-      inflationRate
+      inflationRate,
+      undefined
     );
 
     // Year 0 withdrawal is 40000
@@ -66,7 +68,8 @@ describe('simulateFourPercentRuleRatchetUp', () => {
       initialWithdrawalAmount,
       withdrawalRate,
       true,
-      inflationRate
+      inflationRate,
+      undefined
     );
 
     // Year 0 withdrawal is 40000
@@ -98,7 +101,8 @@ describe('simulateGuytonKlinger', () => {
       initialWithdrawalRate,
       inflationRate,
       true,
-      0.2, 0.2, 0.1, 0.1
+      0.2, 0.2, 0.1, 0.1,
+      undefined
     );
 
     // Year 0 withdrawal: 1_000_000 * 0.04 = 40_000
@@ -116,7 +120,8 @@ describe('simulateGuytonKlinger', () => {
       0.04, // Lower initial withdrawal rate
       inflationRate,
       true,
-      0.2, 0.2, 0.1, 0.1
+      0.2, 0.2, 0.1, 0.1,
+      undefined
     );
 
     // Year 0 withdrawal: 1_000_000 * 0.04 = 40_000

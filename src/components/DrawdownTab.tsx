@@ -44,6 +44,7 @@ interface DrawdownTabProps {
   isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
   inflationRate: number;
+  useHistoricalInflation: boolean;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
   numRuns: number;
   seed: number | "";
@@ -74,6 +75,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   isInitialAmountLocked,
   inflationAdjust,
   inflationRate,
+  useHistoricalInflation,
   mode,
   numRuns,
   seed,
@@ -110,7 +112,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
   });
 
   const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
-  const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns, cape } = useData();
+  const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns, cape, inflation } = useData();
 
   const years = useMemo(() => {
     const spyYears = new Set(sp500.map(d => d.year));
@@ -138,6 +140,9 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     return map;
   }, [years, bitcoin, sp500, nasdaq100, btcReturns, bondReturns]);
 
+  const inflationMap = useMemo(() => new Map(inflation.map(d => [d.year, d.inflationPct / 100])), [inflation]);
+  const effectiveInflationRate = useHistoricalInflation ? 0 : inflationRate;
+
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) {
@@ -147,11 +152,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawdownWithdrawalStrategy, startBalance, cash, spy, qqq, bitcoin, bonds, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, inflationRate, mode, numRuns, seed, startYear, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
+  }, [drawdownWithdrawalStrategy, startBalance, cash, spy, qqq, bitcoin, bonds, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, effectiveInflationRate, useHistoricalInflation, mode, numRuns, seed, startYear, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
 
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];
     const initialW = initialWithdrawalAmount / startBalance;
+    const inflationFromYears = (ys: number[]) => ys.map(y => inflationMap.get(y) ?? 0);
 
     if (mode === "actual-seq") {
       let startIdx = years.indexOf(startYear);
@@ -161,10 +167,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
       const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
       const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bond);
+      const inflSeq = useHistoricalInflation ? inflationFromYears(yearSample) : undefined;
       if (strategy === "guytonKlinger") {
-        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+        runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage, inflSeq));
       } else if (strategy === "floorAndCeiling") {
-        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+        runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling, inflSeq));
       } else if (strategy === "capeBased") {
         runs.push(
           simulateCapeBased(
@@ -187,11 +194,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       } else if (strategy === "fixedPercentage") {
         runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, fixedPercentageParams.withdrawalRate));
       } else if (strategy === "principalProtectionRule") {
-        runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate, inflSeq));
       } else if (strategy === "fourPercentRule") {
-        runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate, inflSeq));
       } else if (strategy === "fourPercentRuleUpwardReset") {
-        runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
+        runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate, inflSeq));
       }
     } else {
       // Monte Carlo modes
@@ -210,10 +217,11 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
         const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
         const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bond);
+        const inflSeq = useHistoricalInflation ? inflationFromYears(yearSample) : undefined;
         if (strategy === "guytonKlinger") {
-          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage));
+          runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage, inflSeq));
         } else if (strategy === "floorAndCeiling") {
-          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling));
+          runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling, inflSeq));
         } else if (strategy === "capeBased") {
           runs.push(
             simulateCapeBased(
@@ -236,17 +244,17 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         } else if (strategy === "fixedPercentage") {
           runs.push(simulateFixedPercentage(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, fixedPercentageParams.withdrawalRate));
         } else if (strategy === "principalProtectionRule") {
-          runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        runs.push(simulatePrincipalProtectionRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate, inflSeq));
         } else if (strategy === "fourPercentRule") {
-          runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate));
+        runs.push(simulateFourPercentRule(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, inflationAdjust, inflationRate, inflSeq));
         } else if (strategy === "fourPercentRuleUpwardReset") {
-          runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate));
+        runs.push(simulateFourPercentRuleRatchetUp(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialWithdrawalAmount, initialW, inflationAdjust, inflationRate, inflSeq));
         }
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshCounter, returnsByYear]);
+  }, [refreshCounter, returnsByYear, strategy, useHistoricalInflation, inflationMap]);
 
 
   const stats = useMemo(() => {
@@ -668,17 +676,38 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
             <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
             <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
           </div>
-          <label className="block text-sm">Assumed Inflation Rate
-            <div className="flex items-center mt-1">
+          <div className={`block text-sm ${!inflationAdjust ? 'opacity-50' : ''}`} aria-disabled={!inflationAdjust}>
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="infl-hist-drawdown"
+                name="inflationSourceDrawdown"
+                checked={useHistoricalInflation}
+                onChange={() => onParamChange('useHistoricalInflation', true)}
+                disabled={!inflationAdjust}
+              />
+              <label htmlFor="infl-hist-drawdown" className={`text-sm ${!inflationAdjust ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Historical Inflation</label>
+            </div>
+            <div className="flex items-center mt-2 gap-2">
+              <input
+                type="radio"
+                id="infl-custom-drawdown"
+                name="inflationSourceDrawdown"
+                checked={!useHistoricalInflation}
+                onChange={() => onParamChange('useHistoricalInflation', false)}
+                disabled={!inflationAdjust}
+              />
+              <label htmlFor="infl-custom-drawdown" className={`text-sm ${!inflationAdjust ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Custom Inflation Rate</label>
               <NumericInput
                 className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
                 value={Math.round(inflationRate * 400) / 4}
                 step={0.25}
                 onChange={(v) => onParamChange('inflationRate', v / 100)}
+                disabled={!inflationAdjust}
               />
               <span className="ml-2">%</span>
             </div>
-          </label>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">

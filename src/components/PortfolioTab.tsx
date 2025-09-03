@@ -35,7 +35,8 @@ function simulatePortfolioPath(
   initialWithdrawalRate: number,
   inflationRate: number,
   inflationAdjust: boolean,
-  drawdownStrategy: DrawdownStrategy
+  drawdownStrategy: DrawdownStrategy,
+  inflationRates?: number[],
 ): PortfolioRunResult {
   const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
   const withdrawals: number[] = new Array(horizon).fill(0);
@@ -46,71 +47,72 @@ function simulatePortfolioPath(
   let bonds = initialBonds;
   const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
   const baseWithdrawal = startBalance * initialWithdrawalRate;
+  let withdrawalAmount = baseWithdrawal;
 
   balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
   let failedYear: number | null = null;
 
   for (let y = 0; y < horizon; y++) {
-    let withdrawalAmount = inflationAdjust ? baseWithdrawal * Math.pow(1 + inflationRate, y) : baseWithdrawal;
-    withdrawals[y] = withdrawalAmount;
+    const currentWithdrawal = inflationAdjust ? withdrawalAmount : baseWithdrawal;
+    withdrawals[y] = currentWithdrawal;
 
-    const fromCash = Math.min(withdrawalAmount, cash);
+    const fromCash = Math.min(currentWithdrawal, cash);
     cash -= fromCash;
-    withdrawalAmount -= fromCash;
+    let remainingWithdrawal = currentWithdrawal - fromCash;
 
-    if (withdrawalAmount > 0) {
+    if (remainingWithdrawal > 0) {
       if (drawdownStrategy === 'cashFirst_spyThenQqq') {
-        const fromSpy = Math.min(withdrawalAmount, spy);
+        const fromSpy = Math.min(remainingWithdrawal, spy);
         spy -= fromSpy;
-        withdrawalAmount -= fromSpy;
-        if (withdrawalAmount > 0) {
-          const fromQqq = Math.min(withdrawalAmount, qqq);
+        remainingWithdrawal -= fromSpy;
+        if (remainingWithdrawal > 0) {
+          const fromQqq = Math.min(remainingWithdrawal, qqq);
           qqq -= fromQqq;
-          withdrawalAmount -= fromQqq;
+          remainingWithdrawal -= fromQqq;
         }
-        if (withdrawalAmount > 0) {
-          const fromBitcoin = Math.min(withdrawalAmount, bitcoin);
+        if (remainingWithdrawal > 0) {
+          const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
           bitcoin -= fromBitcoin;
-          withdrawalAmount -= fromBitcoin;
+          remainingWithdrawal -= fromBitcoin;
         }
-        if (withdrawalAmount > 0) {
-          const fromBonds = Math.min(withdrawalAmount, bonds);
+        if (remainingWithdrawal > 0) {
+          const fromBonds = Math.min(remainingWithdrawal, bonds);
           bonds -= fromBonds;
-          withdrawalAmount -= fromBonds;
+          remainingWithdrawal -= fromBonds;
         }
       } else if (drawdownStrategy === 'cashFirst_qqqThenSpy') {
-        const fromQqq = Math.min(withdrawalAmount, qqq);
+        const fromQqq = Math.min(remainingWithdrawal, qqq);
         qqq -= fromQqq;
-        withdrawalAmount -= fromQqq;
-        if (withdrawalAmount > 0) {
-          const fromSpy = Math.min(withdrawalAmount, spy);
+        remainingWithdrawal -= fromQqq;
+        if (remainingWithdrawal > 0) {
+          const fromSpy = Math.min(remainingWithdrawal, spy);
           spy -= fromSpy;
-          withdrawalAmount -= fromSpy;
+          remainingWithdrawal -= fromSpy;
         }
-        if (withdrawalAmount > 0) {
-          const fromBitcoin = Math.min(withdrawalAmount, bitcoin);
+        if (remainingWithdrawal > 0) {
+          const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
           bitcoin -= fromBitcoin;
-          withdrawalAmount -= fromBitcoin;
+          remainingWithdrawal -= fromBitcoin;
         }
-        if (withdrawalAmount > 0) {
-          const fromBonds = Math.min(withdrawalAmount, bonds);
+        if (remainingWithdrawal > 0) {
+          const fromBonds = Math.min(remainingWithdrawal, bonds);
           bonds -= fromBonds;
-          withdrawalAmount -= fromBonds;
+          remainingWithdrawal -= fromBonds;
         }
       } else if (drawdownStrategy === 'cashFirst_equalParts') {
-        const part = withdrawalAmount / 4;
+        const part = remainingWithdrawal / 4;
         const fromSpy = Math.min(part, spy);
         spy -= fromSpy;
-        withdrawalAmount -= fromSpy;
+        remainingWithdrawal -= fromSpy;
         const fromQqq = Math.min(part, qqq);
         qqq -= fromQqq;
-        withdrawalAmount -= fromQqq;
+        remainingWithdrawal -= fromQqq;
         const fromBitcoin = Math.min(part, bitcoin);
         bitcoin -= fromBitcoin;
-        withdrawalAmount -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
         const fromBonds = Math.min(part, bonds);
         bonds -= fromBonds;
-        withdrawalAmount -= fromBonds;
+        remainingWithdrawal -= fromBonds;
         const order = [
           { bal: spy, set: (v: number) => { spy -= v; } },
           { bal: qqq, set: (v: number) => { qqq -= v; } },
@@ -118,10 +120,10 @@ function simulatePortfolioPath(
           { bal: bonds, set: (v: number) => { bonds -= v; } },
         ];
         for (const asset of order) {
-          if (withdrawalAmount <= 0) break;
-          const take = Math.min(withdrawalAmount, asset.bal);
+          if (remainingWithdrawal <= 0) break;
+          const take = Math.min(remainingWithdrawal, asset.bal);
           asset.set(take);
-          withdrawalAmount -= take;
+          remainingWithdrawal -= take;
         }
       } else if (drawdownStrategy === 'cashFirst_bestPerformer') {
         const perf = [
@@ -131,13 +133,13 @@ function simulatePortfolioPath(
           { key: 'bonds', ret: bondReturns[y], bal: bonds },
         ].sort((a, b) => b.ret - a.ret);
         for (const p of perf) {
-          if (withdrawalAmount <= 0) break;
-          const take = Math.min(withdrawalAmount, p.bal);
+          if (remainingWithdrawal <= 0) break;
+          const take = Math.min(remainingWithdrawal, p.bal);
           if (p.key === 'spy') spy -= take;
           else if (p.key === 'qqq') qqq -= take;
           else if (p.key === 'bitcoin') bitcoin -= take;
           else bonds -= take;
-          withdrawalAmount -= take;
+          remainingWithdrawal -= take;
         }
       } else if (drawdownStrategy === 'cashFirst_worstPerformer') {
         const perf = [
@@ -147,13 +149,13 @@ function simulatePortfolioPath(
           { key: 'bonds', ret: bondReturns[y], bal: bonds },
         ].sort((a, b) => a.ret - b.ret);
         for (const p of perf) {
-          if (withdrawalAmount <= 0) break;
-          const take = Math.min(withdrawalAmount, p.bal);
+          if (remainingWithdrawal <= 0) break;
+          const take = Math.min(remainingWithdrawal, p.bal);
           if (p.key === 'spy') spy -= take;
           else if (p.key === 'qqq') qqq -= take;
           else if (p.key === 'bitcoin') bitcoin -= take;
           else bonds -= take;
-          withdrawalAmount -= take;
+          remainingWithdrawal -= take;
         }
       }
     }
@@ -172,6 +174,11 @@ function simulatePortfolioPath(
 
     const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
     balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
+
+    if (inflationAdjust) {
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
+      withdrawalAmount *= (1 + rate);
+    }
   }
 
   return { balances, failedYear, withdrawals };
@@ -192,6 +199,7 @@ interface PortfolioTabProps {
   isInitialAmountLocked: boolean;
   inflationAdjust: boolean;
   inflationRate: number;
+  useHistoricalInflation: boolean;
   mode: "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap";
   numRuns: number;
   seed: number | "";
@@ -221,6 +229,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   isInitialAmountLocked,
   inflationAdjust,
   inflationRate,
+  useHistoricalInflation,
   mode,
   numRuns,
   seed,
@@ -238,7 +247,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
-  const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns } = useData();
+  const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns, inflation } = useData();
 
   const years = useMemo(() => {
     const spyYears = new Set(sp500.map(d => d.year));
@@ -266,6 +275,11 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     return map;
   }, [years, bitcoin, sp500, nasdaq100, btcReturns, bondReturns]);
 
+  const inflationSorted = useMemo(() => inflation.slice().sort((a, b) => a.year - b.year), [inflation]);
+  const inflationYears = useMemo(() => inflationSorted.map(d => d.year), [inflationSorted]);
+  const inflationRatesChrono = useMemo(() => inflationSorted.map(d => d.inflationPct / 100), [inflationSorted]);
+  const effectiveInflationRate = useHistoricalInflation ? 0 : inflationRate;
+
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) {
@@ -275,11 +289,16 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
     const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startBalance, cash, spy, qqq, bitcoin, bonds, drawdownStrategy, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
+  }, [startBalance, cash, spy, qqq, bitcoin, bonds, drawdownStrategy, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, effectiveInflationRate, useHistoricalInflation, mode, numRuns, seed, startYear]);
 
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];
     const initialW = initialWithdrawalAmount / startBalance;
+
+    const inflationFromYears = (ys: number[]) => ys.map(y => {
+      const idx = inflationYears.indexOf(y);
+      return idx === -1 ? 0 : inflationRatesChrono[idx];
+    });
 
     if (mode === "actual-seq") {
       let startIdx = years.indexOf(startYear);
@@ -289,7 +308,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
       const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
       const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
       const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
-      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+      const inflSeq = useHistoricalInflation ? inflationFromYears(yearSample) : undefined;
+      runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy, inflSeq));
     } else {
       // Monte Carlo modes
       for (let i = 0; i < numRuns; i++) {
@@ -307,12 +327,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
         const qqqReturns = yearSample.map(y => returnsByYear.get(y)!.qqq);
         const bitcoinReturns = yearSample.map(y => returnsByYear.get(y)!.bitcoin);
         const bondReturns = yearSample.map(y => returnsByYear.get(y)!.bonds);
-        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy));
+        const inflSeq = useHistoricalInflation ? inflationFromYears(yearSample) : undefined;
+        runs.push(simulatePortfolioPath(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, drawdownStrategy, inflSeq));
       }
     }
     return runs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshCounter, returnsByYear]);
+  }, [refreshCounter, returnsByYear, useHistoricalInflation, inflationYears, inflationRatesChrono, years, cash, spy, qqq, bitcoin, bonds, horizon, startYear, initialWithdrawalAmount, startBalance, effectiveInflationRate, inflationAdjust, drawdownStrategy, mode, numRuns]);
 
 
   const stats = useMemo(() => {
@@ -716,17 +737,38 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
             <input id="infl" type="checkbox" checked={inflationAdjust} onChange={e => onParamChange('inflationAdjust', e.target.checked)} />
             <label htmlFor="infl" className="text-sm">Inflation-adjust withdrawals</label>
           </div>
-          <label className="block text-sm">Assumed Inflation Rate
-            <div className="flex items-center mt-1">
+          <div className={`block text-sm ${!inflationAdjust ? 'opacity-50' : ''}`} aria-disabled={!inflationAdjust}>
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="infl-hist-portfolio"
+                name="inflationSourcePortfolio"
+                checked={useHistoricalInflation}
+                onChange={() => onParamChange('useHistoricalInflation', true)}
+                disabled={!inflationAdjust}
+              />
+              <label htmlFor="infl-hist-portfolio" className={`text-sm ${!inflationAdjust ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Historical Inflation</label>
+            </div>
+            <div className="flex items-center mt-2 gap-2">
+              <input
+                type="radio"
+                id="infl-custom-portfolio"
+                name="inflationSourcePortfolio"
+                checked={!useHistoricalInflation}
+                onChange={() => onParamChange('useHistoricalInflation', false)}
+                disabled={!inflationAdjust}
+              />
+              <label htmlFor="infl-custom-portfolio" className={`text-sm ${!inflationAdjust ? 'text-slate-500 dark:text-slate-400' : ''}`}>Use Custom Inflation Rate</label>
               <NumericInput
                 className="w-20 border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600"
                 value={Math.round(inflationRate * 400) / 4}
                 step={0.25}
                 onChange={(v) => onParamChange('inflationRate', v / 100)}
+                disabled={!inflationAdjust}
               />
               <span className="ml-2">%</span>
             </div>
-          </label>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">

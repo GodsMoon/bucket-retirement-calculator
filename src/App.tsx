@@ -90,6 +90,7 @@ export default function App() {
     isFirstWithdrawLocked: false,
     inflationAdjust: true,
     inflationRate: 0.02,
+    useHistoricalInflation: true,
     mode: "actual-seq-random-start" as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap",
     numRuns: 1000,
     seed: "" as number | "",
@@ -126,6 +127,7 @@ export default function App() {
   const [isFirstWithdrawLocked, setIsInitialAmountLocked] = useState(initialProfile.isFirstWithdrawLocked);
   const [inflationAdjust, setInflationAdjust] = useState(initialProfile.inflationAdjust);
   const [inflationRate, setInflationRate] = useState(initialProfile.inflationRate); // 2%
+  const [useHistoricalInflation, setUseHistoricalInflation] = useState(initialProfile.useHistoricalInflation);
   const [mode, setMode] = useState<"actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap">(initialProfile.mode);
   const [numRuns, setNumRuns] = useState(initialProfile.numRuns);
   const [seed, setSeed] = useState<number | "">(initialProfile.seed);
@@ -298,6 +300,7 @@ export default function App() {
     setIsInitialAmountLocked(data.isFirstWithdrawLocked);
     setInflationAdjust(data.inflationAdjust);
     setInflationRate(data.inflationRate);
+    setUseHistoricalInflation(data.useHistoricalInflation);
     setMode(data.mode);
     setNumRuns(data.numRuns);
     setSeed(data.seed);
@@ -343,6 +346,7 @@ export default function App() {
       }
       case 'inflationAdjust': setInflationAdjust(value as boolean); break;
       case 'inflationRate': setInflationRate(parseFloat(value as string)); break;
+      case 'useHistoricalInflation': setUseHistoricalInflation(value as boolean); break;
       case 'mode': setMode(value as "actual-seq" | "actual-seq-random-start" | "random-shuffle" | "bootstrap"); break;
       case 'numRuns': setNumRuns(parseFloat(value as string)); break;
       case 'seed': setSeed(value === "" ? "" : parseFloat(value as string)); break;
@@ -366,6 +370,7 @@ export default function App() {
       isFirstWithdrawLocked,
       inflationAdjust,
       inflationRate,
+      useHistoricalInflation,
       mode,
       numRuns,
       seed,
@@ -373,7 +378,7 @@ export default function App() {
     };
     localStorage.setItem(`profile_${profile}`, JSON.stringify(data));
     localStorage.setItem("activeProfile", profile);
-  }, [profile, startBalance, cash, spy, qqq, bitcoin, bonds, drawdownStrategy, drawdownWithdrawalStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, mode, numRuns, seed, startYear]);
+  }, [profile, startBalance, cash, spy, qqq, bitcoin, bonds, drawdownStrategy, drawdownWithdrawalStrategy, horizon, withdrawRate, initialWithdrawalAmount, isFirstWithdrawLocked, inflationAdjust, inflationRate, useHistoricalInflation, mode, numRuns, seed, startYear]);
 
   const activeStartBalance = (activeTab === 'sp500' || activeTab === 'nasdaq100')
     ? startBalance
@@ -428,6 +433,7 @@ export default function App() {
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
+            useHistoricalInflation={useHistoricalInflation}
             mode={mode}
             numRuns={numRuns}
             seed={seed}
@@ -453,6 +459,7 @@ export default function App() {
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
+            useHistoricalInflation={useHistoricalInflation}
             mode={mode}
             numRuns={numRuns}
             seed={seed}
@@ -484,6 +491,7 @@ export default function App() {
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
+            useHistoricalInflation={useHistoricalInflation}
             mode={mode}
             numRuns={numRuns}
             seed={seed}
@@ -515,6 +523,7 @@ export default function App() {
             isInitialAmountLocked={isFirstWithdrawLocked}
             inflationAdjust={inflationAdjust}
             inflationRate={inflationRate}
+            useHistoricalInflation={useHistoricalInflation}
             mode={mode}
             numRuns={numRuns}
             seed={seed}

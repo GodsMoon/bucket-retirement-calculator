@@ -413,6 +413,7 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
 
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
+  const [lastDroppedId, setLastDroppedId] = React.useState<string | null>(null);
 
   const handleSwap = (targetId: string, sourceId: string) => {
     if (!onReorderChartOrder) return;
@@ -644,8 +645,12 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
               <motion.div
                 key={chartId}
                 layout
-                transition={{ duration: 0.33 }}
-                className={`${((chartStates[chartId]?.size ?? 'half') === 'full') ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
+                animate={draggingId && overId === chartId ? { scale: 1.1 } : { scale: 1 }}
+                transition={chartId === lastDroppedId
+                  ? { layout: { type: 'tween', duration: 0.15, ease: 'easeOut' }, scale: { type: 'tween', duration: 0.12, ease: 'easeOut' } }
+                  : { layout: { type: 'tween', duration: 0.4, ease: 'easeInOut' }, scale: { type: 'tween', duration: 0.12, ease: 'easeOut' } }
+                }
+                className={`${((chartStates[chartId]?.size ?? 'half') === 'full') ? 'md:col-span-2' : ''} relative ${draggingId && overId === chartId ? 'z-10' : ''}`}
                 data-chart-id={chartId}
                 onDragOver={(e) => {
                   if (!draggingId) return;
@@ -661,6 +666,8 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                   handleSwap(chartId, src);
                   setDraggingId(null);
                   setOverId(null);
+                  setLastDroppedId(src);
+                  setTimeout(() => setLastDroppedId(prev => (prev === src ? null : prev)), 250);
                 }}
               >
                 {draggingId && (

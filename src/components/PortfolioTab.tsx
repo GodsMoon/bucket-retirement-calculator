@@ -249,6 +249,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
   const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }), []);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
+  const [lastDroppedId, setLastDroppedId] = React.useState<string | null>(null);
   const { sp500, nasdaq100, bitcoin: btcReturns, bonds: bondReturns, inflation } = useData();
 
   const years = useMemo(() => {
@@ -951,8 +952,12 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
               <motion.div
                 key={chartId}
                 layout
-                transition={{ duration: 0.33 }}
-                className={`${((chartStates[chartId]?.size ?? 'half') === 'full') ? 'md:col-span-2' : ''} relative transition-transform ${draggingId && overId === chartId ? 'scale-110 z-10' : ''}`}
+                animate={draggingId && overId === chartId ? { scale: 1.1 } : { scale: 1 }}
+                transition={chartId === lastDroppedId
+                  ? { layout: { type: 'tween', duration: 0.15, ease: 'easeOut' }, scale: { type: 'tween', duration: 0.12, ease: 'easeOut' } }
+                  : { layout: { type: 'tween', duration: 0.4, ease: 'easeInOut' }, scale: { type: 'tween', duration: 0.12, ease: 'easeOut' } }
+                }
+                className={`${((chartStates[chartId]?.size ?? 'half') === 'full') ? 'md:col-span-2' : ''} relative ${draggingId && overId === chartId ? 'z-10' : ''}`}
                 data-chart-id={chartId}
                 onDragOver={(e) => {
                   if (!draggingId) return;
@@ -975,7 +980,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                   current[tgtIdx] = tmp;
                   onReorderChartOrder(current);
                   setDraggingId(null);
+                  setLastDroppedId(src);
                   setOverId(null);
+                  setTimeout(() => setLastDroppedId(prev => (prev === src ? null : prev)), 250);
                 }}
               >
                 {draggingId && (
@@ -1001,6 +1008,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({
                 onReorderChartOrder(current);
                 setDraggingId(null);
                 setOverId(null);
+                setLastDroppedId(src);
+                setTimeout(() => setLastDroppedId(prev => (prev === src ? null : prev)), 250);
               }}
             >
               <span className="px-2 py-1 rounded-md bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow">Drop Here</span>

@@ -22,7 +22,7 @@ const Chart: React.FC<ChartProps> = ({ chartId, title, onRefresh, onMinimize, on
   return (
     <motion.section
       layout
-      transition={{ duration: 0.33 }}
+      transition={{ type: 'tween', duration: 0.4, ease: 'easeInOut' }}
       className={`bg-white dark:bg-slate-800 rounded-2xl shadow p-4 pt-2 h-full border-l-4 ${colorClass}`}
       ref={sectionRef as React.Ref<HTMLElement>}
     >

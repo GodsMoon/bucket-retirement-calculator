@@ -37,6 +37,31 @@ export function percentile(values: number[], p: number): number {
   return sorted[lo] * (1 - w) + sorted[hi] * w;
 }
 
+export function calculateSingleRunDrawdown(run: RunResult) {
+  let highPoint = run.balances[0];
+  let maxDrawdown = 0;
+  let lowPoint = run.balances[0];
+
+  // The first balance is the starting balance, so we can skip it.
+  for (let i = 1; i < run.balances.length; i++) {
+    const balance = run.balances[i];
+    if (balance > highPoint) {
+      highPoint = balance;
+    }
+    const drawdown = highPoint > 0 ? (highPoint - balance) / highPoint : 0;
+    if (drawdown > maxDrawdown) {
+      maxDrawdown = drawdown;
+      lowPoint = balance;
+    }
+  }
+
+  return {
+    highPoint,
+    lowPoint,
+    maxDrawdown,
+  };
+}
+
 export function calculateDrawdownStats(sims: RunResult[]) {
   const maxDrawdowns: number[] = [];
   const lowPoints: number[] = [];

@@ -10,6 +10,7 @@ import NumericInput from "./NumericInput";
 import Chart, { type ChartProps } from "./Chart";
 import type { ChartState } from "../App";
 import MinimizedChartsBar from "./MinimizedChartsBar";
+import SampleRunDetails from "./SampleRunDetails";
 
 function simulatePath(
   returns: number[], // multipliers for each year of the horizon
@@ -588,25 +589,48 @@ const Nasdaq100Tab: React.FC<NasdaqTabProps> = ({
                 )}
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 space-y-3">
-                <h2 className="font-semibold">Results</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4">
+                <h2 className="font-semibold mb-3">Results</h2>
                 {stats && (
-                    <div className="space-y-2 text-sm">
-                        <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
-                        {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
-                        <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
-                        <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
-                        <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
-                        <div className="border-t pt-2 mt-2">
-                            <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
-                            <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
-                            <div>Max Drawdown: <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
-                            <div>Worst Low Point: <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="font-semibold text-sm">Summary</h3>
+                            <div className="text-sm space-y-1 mt-1">
+                                <div>Success rate: <span className="font-semibold">{(stats.successRate * 100).toFixed(1)}%</span> ({sims.length} run{sims.length !== 1 ? 's' : ''})</div>
+                                <div>Median ending balance: <span className="font-semibold">{currency.format(percentile(stats.endingBalances, 0.5))}</span></div>
+                                <div>10th–90th percentile ending: {currency.format(percentile(stats.endingBalances, 0.10))} – {currency.format(percentile(stats.endingBalances, 0.90))}</div>
+                            </div>
                         </div>
+
+                        <div className="border-t dark:border-slate-700 pt-3">
+                            <h3 className="font-semibold text-sm">Withdrawals</h3>
+                            <div className="text-sm space-y-1 mt-1">
+                                <div>1st year withdrawal: <span className="font-semibold">{currency.format(initialWithdrawalAmount)}</span></div>
+                                {horizon >= 5 && <div>5th year median withdrawal: <span className="font-semibold">{currency.format(stats.medianFifthYearWithdrawal)}</span></div>}
+                            </div>
+                        </div>
+
+                        <div className="border-t dark:border-slate-700 pt-3">
+                            <h3 className="font-semibold text-sm">Drawdowns</h3>
+                            <div className="text-sm space-y-1 mt-1">
+                                <div>Median Drawdown: <span className="font-semibold">{(stats.medianDrawdown * 100).toFixed(1)}%</span></div>
+                                <div>Median Low Point: <span className="font-semibold">{currency.format(stats.medianLowPoint)}</span></div>
+                                <div>Max Drawdown (across all runs): <span className="font-semibold">{(stats.maxDrawdown * 100).toFixed(1)}%</span></div>
+                                <div>Worst Low Point (across all runs): <span className="font-semibold">{currency.format(stats.worstLowPoint)}</span></div>
+                            </div>
+                        </div>
+
+                        {sims.length > 1 && (
+                            <div className="border-t dark:border-slate-700 pt-2">
+                                <h3 className="font-semibold text-sm mb-1">Sample Runs</h3>
+                                <div className="border rounded-lg dark:border-slate-700">
+                                    {sims.slice(0, 5).map((run, i) => (
+                                        <SampleRunDetails key={i} run={run} runNumber={i + 1} currency={currency} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
-                {sampleRun && (
-                    <div className="text-xs text-slate-600 dark:text-slate-400">First failure year (sample run): {sampleRun.failedYear ?? 'none'}</div>
                 )}
             </div>
         </section>

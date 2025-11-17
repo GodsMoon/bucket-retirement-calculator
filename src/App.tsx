@@ -27,6 +27,7 @@ export type DrawdownStrategy =
 
 export type DrawdownStrategies =
   | "guytonKlinger"
+  | "riskBasedGuardrails"
   | "floorAndCeiling"
   | "capeBased"
   | "fixedPercentage"

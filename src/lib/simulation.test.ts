@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { simulateFourPercentRuleRatchetUp, simulateGuytonKlinger, simulateCapeBased } from './simulation';
+import { simulateFourPercentRuleRatchetUp, simulateGuytonKlinger, simulateCapeBased, simulateRiskBasedGuardrails } from './simulation';
 
 describe('simulateFourPercentRuleRatchetUp', () => {
   const initialSpy = 1000000;
@@ -166,5 +166,50 @@ describe('simulateCapeBased', () => {
     // Year 1 withdrawal rate: 0.02 + 0.5 * (1/30) = 0.036666
     // Withdrawal amount: 967_500 * 0.036666 = 35474.955
     expect(result.withdrawals[1]).toBeCloseTo(35475);
+  });
+});
+
+describe('simulateRiskBasedGuardrails', () => {
+  const initialBalance = 1000000;
+  const horizon = 30;
+  const initialWithdrawalRate = 0.04;
+  const inflationRate = 0.02;
+  const returnsUp = Array(horizon).fill(1.1);
+  const returnsDown = Array(horizon).fill(0.9);
+
+  it('should raise withdrawals when success rate is high', () => {
+    const result = simulateRiskBasedGuardrails(
+      returnsUp, returnsUp, returnsUp, returnsUp,
+      0, initialBalance, 0, 0, 0,
+      horizon,
+      initialWithdrawalRate,
+      inflationRate,
+      false,
+      0.95,
+      0.5,
+      0.1,
+      0.1,
+      1,
+      undefined,
+    );
+    expect(result.withdrawals[1]).toBeCloseTo(44000);
+  });
+
+  it('should cut withdrawals when success rate is low', () => {
+    const result = simulateRiskBasedGuardrails(
+      returnsDown, returnsDown, returnsDown, returnsDown,
+      0, initialBalance, 0, 0, 0,
+      horizon,
+      initialWithdrawalRate,
+      inflationRate,
+      false,
+      0.95,
+      0.5,
+      0.1,
+      0.1,
+      1,
+      undefined,
+    );
+    expect(result.withdrawals[1]).toBeCloseTo(36000);
   });
 });

@@ -215,6 +215,163 @@ export function simulateGuytonKlinger(
   return { balances, withdrawals, failedYear, guardrailTriggers };
 }
 
+export function simulateRiskBasedGuardrails(
+  spyReturns: number[],
+  qqqReturns: number[],
+  bitcoinReturns: number[],
+  bondReturns: number[],
+  initialCash: number,
+  initialSpy: number,
+  initialQqq: number,
+  initialBitcoin: number,
+  initialBonds: number,
+  horizon: number,
+  initialWithdrawalRate: number,
+  inflationRate: number,
+  inflationAdjust: boolean,
+  successUpper: number,
+  successLower: number,
+  cutPercentage: number,
+  raisePercentage: number,
+  mcSamples = 100,
+  inflationRates?: number[],
+): PortfolioRunResult {
+  const balances = new Array(horizon + 1).fill(0).map(() => ({ total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 }));
+  const withdrawals: number[] = new Array(horizon).fill(0);
+  const guardrailTriggers: number[] = [];
+  let cash = initialCash;
+  let spy = initialSpy;
+  let qqq = initialQqq;
+  let bitcoin = initialBitcoin;
+  let bonds = initialBonds;
+  const startBalance = initialCash + initialSpy + initialQqq + initialBitcoin + initialBonds;
+  let withdrawalAmount = startBalance * initialWithdrawalRate;
+
+  balances[0] = { total: startBalance, cash, spy, qqq, bitcoin, bonds };
+  let failedYear: number | null = null;
+
+  const calcSuccessRate = (
+    c: number,
+    s: number,
+    q: number,
+    btc: number,
+    bd: number,
+    withdraw: number,
+    remaining: number,
+  ) => {
+    let success = 0;
+    for (let i = 0; i < mcSamples; i++) {
+      let cashMC = c, spyMC = s, qqqMC = q, bitcoinMC = btc, bondsMC = bd;
+      let withdrawalMC = withdraw;
+      let failed = false;
+      for (let y = 0; y < remaining; y++) {
+        const fromCash = Math.min(withdrawalMC, cashMC);
+        cashMC -= fromCash;
+        let remW = withdrawalMC - fromCash;
+        if (remW > 0) { const fs = Math.min(remW, spyMC); spyMC -= fs; remW -= fs; }
+        if (remW > 0) { const fq = Math.min(remW, qqqMC); qqqMC -= fq; remW -= fq; }
+        if (remW > 0) { const fb = Math.min(remW, bitcoinMC); bitcoinMC -= fb; remW -= fb; }
+        if (remW > 0) { const fbd = Math.min(remW, bondsMC); bondsMC -= fbd; }
+        const totalBefore = cashMC + spyMC + qqqMC + bitcoinMC + bondsMC;
+        if (totalBefore <= 0) { failed = true; break; }
+        const idx = Math.floor(Math.random() * spyReturns.length);
+        spyMC *= spyReturns[idx];
+        qqqMC *= qqqReturns[idx];
+        bitcoinMC *= bitcoinReturns[idx];
+        bondsMC *= bondReturns[idx];
+        if (inflationAdjust) {
+          const rate = inflationRates ? inflationRates[(horizon - remaining) + y] ?? inflationRate : inflationRate;
+          withdrawalMC *= (1 + rate);
+        }
+      }
+      if (!failed) success++;
+    }
+    return success / mcSamples;
+  };
+
+  for (let y = 0; y < horizon; y++) {
+    withdrawals[y] = withdrawalAmount;
+
+    // Drawdown from cash first
+    const fromCash = Math.min(withdrawalAmount, cash);
+    cash -= fromCash;
+    let remainingWithdrawal = withdrawalAmount - fromCash;
+
+    if (remainingWithdrawal > 0) {
+      const fromSpy = Math.min(remainingWithdrawal, spy);
+      spy -= fromSpy;
+      remainingWithdrawal -= fromSpy;
+
+      if (remainingWithdrawal > 0) {
+        const fromQqq = Math.min(remainingWithdrawal, qqq);
+        qqq -= fromQqq;
+        remainingWithdrawal -= fromQqq;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBitcoin = Math.min(remainingWithdrawal, bitcoin);
+        bitcoin -= fromBitcoin;
+        remainingWithdrawal -= fromBitcoin;
+      }
+
+      if (remainingWithdrawal > 0) {
+        const fromBonds = Math.min(remainingWithdrawal, bonds);
+        bonds -= fromBonds;
+      }
+    }
+
+    const totalBeforeGrowth = cash + spy + qqq + bitcoin + bonds;
+    if (totalBeforeGrowth <= 0 && failedYear === null) {
+      failedYear = y + 1;
+      for (let i = y + 1; i <= horizon; i++) {
+        balances[i] = { total: 0, cash: 0, spy: 0, qqq: 0, bitcoin: 0, bonds: 0 };
+      }
+      break;
+    }
+
+    // Apply market returns
+    const portfolioBeforeGrowth = totalBeforeGrowth;
+    spy *= spyReturns[y];
+    qqq *= qqqReturns[y];
+    bitcoin *= bitcoinReturns[y];
+    bonds *= bondReturns[y];
+    const portfolioAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    const lastYearReturn = (portfolioAfterGrowth / portfolioBeforeGrowth) - 1;
+
+    const totalAfterGrowth = cash + spy + qqq + bitcoin + bonds;
+    balances[y + 1] = { total: totalAfterGrowth, cash, spy, qqq, bitcoin, bonds };
+
+    // Determine next year's withdrawal amount
+    let nextWithdrawalAmount = withdrawalAmount;
+
+    // Inflation adjustment
+    const currentWithdrawalRate = withdrawalAmount / totalAfterGrowth;
+    if (inflationAdjust) {
+      const rate = inflationRates ? inflationRates[y] : inflationRate;
+      if (lastYearReturn >= 0 || currentWithdrawalRate <= initialWithdrawalRate) {
+        nextWithdrawalAmount *= (1 + rate);
+      }
+    }
+
+    // Risk-based guardrail adjustments
+    if (y < horizon - 15) {
+      const remainingYears = horizon - (y + 1);
+      const successRate = calcSuccessRate(cash, spy, qqq, bitcoin, bonds, nextWithdrawalAmount, remainingYears);
+      if (successRate < successLower) {
+        nextWithdrawalAmount *= (1 - cutPercentage);
+        guardrailTriggers.push(y + 1);
+      } else if (successRate > successUpper) {
+        nextWithdrawalAmount *= (1 + raisePercentage);
+        guardrailTriggers.push(y + 1);
+      }
+    }
+
+    withdrawalAmount = nextWithdrawalAmount;
+  }
+
+  return { balances, withdrawals, failedYear, guardrailTriggers };
+}
+
 export function simulateFloorAndCeiling(
   spyReturns: number[],
   qqqReturns: number[],

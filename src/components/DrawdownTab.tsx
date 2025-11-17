@@ -18,6 +18,7 @@ import {
   type PortfolioRunResult,
   type RunResult,
   simulateGuytonKlinger,
+  simulateRiskBasedGuardrails,
   simulateFloorAndCeiling,
   simulateFourPercentRuleRatchetUp,
   simulateFourPercentRule,
@@ -102,6 +103,12 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     cutPercentage: 0.1,
     raisePercentage: 0.1,
   });
+  const [riskBasedParams, setRiskBasedParams] = React.useState({
+    successUpper: 0.99,
+    successLower: 0.7,
+    cutPercentage: 0.1,
+    raisePercentage: 0.1,
+  });
   const [floorAndCeilingParams, setFloorAndCeilingParams] = React.useState({
     floor: 0.3,
     ceiling: 0.3,
@@ -155,7 +162,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
     const id = setTimeout(onRefresh, 100);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawdownWithdrawalStrategy, startBalance, cash, spy, qqq, bitcoin, bonds, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, effectiveInflationRate, useHistoricalInflation, mode, numRuns, seed, startYear, guytonKlingerParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
+  }, [drawdownWithdrawalStrategy, startBalance, cash, spy, qqq, bitcoin, bonds, horizon, withdrawRate, initialWithdrawalAmount, inflationAdjust, effectiveInflationRate, useHistoricalInflation, mode, numRuns, seed, startYear, guytonKlingerParams, riskBasedParams, floorAndCeilingParams, capeBasedParams, fixedPercentageParams]);
 
   const sims = useMemo(() => {
     const runs: PortfolioRunResult[] = [];
@@ -173,6 +180,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
       const inflSeq = useHistoricalInflation ? inflationFromYears(yearSample) : undefined;
       if (strategy === "guytonKlinger") {
         runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage, inflSeq));
+      } else if (strategy === "riskBasedGuardrails") {
+        runs.push(simulateRiskBasedGuardrails(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, riskBasedParams.successUpper, riskBasedParams.successLower, riskBasedParams.cutPercentage, riskBasedParams.raisePercentage, undefined, inflSeq));
       } else if (strategy === "floorAndCeiling") {
         runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling, inflSeq));
       } else if (strategy === "capeBased") {
@@ -223,6 +232,8 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
         const inflSeq = useHistoricalInflation ? inflationFromYears(yearSample) : undefined;
         if (strategy === "guytonKlinger") {
           runs.push(simulateGuytonKlinger(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, guytonKlingerParams.guardrailUpper, guytonKlingerParams.guardrailLower, guytonKlingerParams.cutPercentage, guytonKlingerParams.raisePercentage, inflSeq));
+        } else if (strategy === "riskBasedGuardrails") {
+          runs.push(simulateRiskBasedGuardrails(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, riskBasedParams.successUpper, riskBasedParams.successLower, riskBasedParams.cutPercentage, riskBasedParams.raisePercentage, undefined, inflSeq));
         } else if (strategy === "floorAndCeiling") {
           runs.push(simulateFloorAndCeiling(spyReturns, qqqReturns, bitcoinReturns, bondReturns, cash, spy, qqq, bitcoin, bonds, horizon, initialW, inflationRate, inflationAdjust, floorAndCeilingParams.floor, floorAndCeilingParams.ceiling, inflSeq));
         } else if (strategy === "capeBased") {
@@ -768,6 +779,7 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
               <option value="fourPercentRule">4% Rule</option>
               <option value="fourPercentRuleUpwardReset">4% Rule – Upward Reset</option>
               <option value="guytonKlinger">Guyton-Klinger</option>
+              <option value="riskBasedGuardrails">Risk-Based Guardrails</option>
               <option value="floorAndCeiling">Floor and Ceiling</option>
               <option value="capeBased">CAPE-Based</option>
               <option value="fixedPercentage">Fixed % Drawdown</option>
@@ -802,6 +814,26 @@ const DrawdownTab: React.FC<DrawdownTabProps> = ({
                 </label>
                 <label className="block">Cut Percentage (%)
                   <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={guytonKlingerParams.cutPercentage * 100} onChange={e => setGuytonKlingerParams({ ...guytonKlingerParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {strategy === 'riskBasedGuardrails' && (
+            <div className="text-sm border-t pt-2">
+              <h3 className="font-semibold mb-2">Risk-Based Guardrails adjust withdrawals based on Monte Carlo success probabilities.</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">Lower Success Rate (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={riskBasedParams.successLower * 100} onChange={e => setRiskBasedParams({ ...riskBasedParams, successLower: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Upper Success Rate (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={riskBasedParams.successUpper * 100} onChange={e => setRiskBasedParams({ ...riskBasedParams, successUpper: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Raise Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={riskBasedParams.raisePercentage * 100} onChange={e => setRiskBasedParams({ ...riskBasedParams, raisePercentage: parseFloat(e.target.value) / 100 })} />
+                </label>
+                <label className="block">Cut Percentage (%)
+                  <input type="number" className="mt-1 w-full border rounded-xl p-2 bg-white dark:bg-slate-700 dark:border-slate-600" value={riskBasedParams.cutPercentage * 100} onChange={e => setRiskBasedParams({ ...riskBasedParams, cutPercentage: parseFloat(e.target.value) / 100 })} />
                 </label>
               </div>
             </div>
